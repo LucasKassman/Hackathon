@@ -2,6 +2,7 @@ import time
 import datetime
 import MySQLdb
 import requests
+import json
 
 password = "665404ebeb06"
 user = "3SrUVoPGAkHxoe1.ping_inserter"
@@ -19,11 +20,6 @@ connection = MySQLdb.connect(
       }
     )
 
-#with connection:
-#    execute_sql(connection, f'''CREATE USER "{user}" IDENTIFIED BY '{password}';''')
-#    execute_sql(connection, f'''GRANT INSERT ON TABLE ping_data TO "{user}"''')
-#exit(0)
-
 def execute_sql(connection, sql, params=None):
     with connection.cursor() as cursor:
         if params is not None:
@@ -34,9 +30,10 @@ def execute_sql(connection, sql, params=None):
     connection.commit()
     return res
 
-def store_head_requests(connection):
+with open("servers.json") as f:
+    hostnames = json.load(f)["valid_servers"]
 
-    hostnames = [f"oldschool{i+1}.runescape.com" for i in range(2)]
+def store_head_requests(connection):
     latencies = []
     times = []
 
@@ -46,11 +43,10 @@ def store_head_requests(connection):
         times.append(datetime.datetime.now())
 
     print(latencies)
-    #print(times)
     records = []
     for hostname, latency, times in zip(hostnames, latencies, times):
         records.append(
-            (datetime.datetime.now(), int(latency*1000000), hostname, "Southern California", 1),
+            (datetime.datetime.now(), int(latency*1000000), hostname, "us-east-2", 1),
         )
 
     with connection.cursor() as cursor:
@@ -69,6 +65,22 @@ def store_head_requests(connection):
     connection.commit()
     print(f"saved {len(hostnames)} head requests infos")
 
+'''
+valid_servers = []
+invalid_servers = []
+for i in range(400):
+    try:
+        requests.head(f"http://oldschool{i+1}.runescape.com")
+        valid_servers.append(f"oldschool{i+1}.runescape.com")
+    except:
+        invalid_servers.append(f"oldschool{i+1}.runescape.com")
+
+import json
+with open("servers.json", "w") as f:
+    f.write(json.dumps({"valid_servers": valid_servers, "invalid_servers": invalid_servers}))
+exit(0)
+'''
+
 prev_end_time = time.time()
 with connection:
     while True:
@@ -76,4 +88,4 @@ with connection:
         end_time = time.time()
         elapsed = end_time - prev_end_time
         prev_end_time = end_time
-        time.sleep(max(0, 1 - elapsed))
+        time.sleep(max(0, 60 - elapsed))
