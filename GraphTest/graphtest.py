@@ -26,24 +26,35 @@ labels=[]
 # only make the first server visible by default
 bVisible=True
 
+activated = []
+line_colors = []
 for server in mydata:
     p, = ax.plot(mydata[server]['timestamps'],mydata[server]['goodness'],colors_list[i])
     p.set_visible(bVisible)
     labels.append(server)
     plots.append(p)
+    activated.append(bVisible)
+    line_colors.append(colors_list[i])
     bVisible=False  # all others will be hidden
     i = i + 1
 
-activated = [True, False, False, False]
+#ttk: activated = [True, False, False, False]
 
 # [left/right, up/down, h, v size]
 # played around with this until something looked okay.  TBD:  Vertical position and size should be calculated based on number of servers being displayed.
 ax_check = plt.axes([0.75, 0.40, 0.15, 0.3])
 
-plot_button = CheckButtons(ax_check, labels, activated)
+plot_button = CheckButtons(
+    ax=ax_check,
+    labels=labels,
+    actives=activated,
+    label_props={'color':line_colors},
+    frame_props={'edgecolor':line_colors},
+    check_props={'facecolor':line_colors}
+    )
 
 # change the colors of the checkboxes to match the lines in the plots:
-[rec.set_facecolor(colors_list[i]) for i, rec in enumerate(plot_button.rectangles)]
+#[rec.set_facecolor(colors_list[i]) for i, rec in enumerate(plot_button.rectangles)]
 
 # handle plot_button clicks by toggling the visibility of the specific server
 def select_plot(label):
