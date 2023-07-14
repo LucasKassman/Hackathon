@@ -13,7 +13,7 @@ connection = MySQLdb.connect(
     user="3SrUVoPGAkHxoe1.root",
     password=password,
     database="test",
-ssl_mode="VERIFY_IDENTITY",
+    ssl_mode="VERIFY_IDENTITY",
     ssl={
       "ca": "/etc/ssl/certs/ca-certificates.crt"
       }
