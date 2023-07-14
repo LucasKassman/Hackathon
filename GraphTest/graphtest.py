@@ -16,7 +16,10 @@ def plotIt(mydata):
     labels=[]
     plots=[]
 
-    colors_list = ['red','green','blue','purple','black'] # one color per server
+    colors_list = ['red','green','blue','purple','black',
+                   'tab:blue', 'tab:orange', 'tab:green', 'tab:red', 'tab:purple', 'tab:brown', 'tab:pink', 'tab:gray', 'tab:olive', 'tab:cyan'
+                ]
+             # one color per server
 
     fig = plt.figure()
     ax = fig.subplots()
@@ -36,7 +39,7 @@ def plotIt(mydata):
     activated = []
     line_colors = []
     for server in mydata:
-        p, = ax.plot(mydata[server]['timestamps'],mydata[server]['goodness'],colors_list[i])
+        p, = ax.plot(mydata[server]['timestamps'],mydata[server]['goodness'],colors_list[i%len(colors_list)])
         p.set_visible(bVisible)
         labels.append(server)
         plots.append(p)

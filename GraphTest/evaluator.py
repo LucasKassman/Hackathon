@@ -1,9 +1,10 @@
+import pprint
 from Average import *
 from graphtest import *
 
 #
 # return a list of servers to probe.
-def getServers2(cursor):
+def getServers(cursor):
 
     query = "SELECT server FROM server_list WHERE valid= 'TRUE'"
     cursor.execute(query)
@@ -15,7 +16,7 @@ def getServers2(cursor):
 
 #
 # Test version of "getServers" to limit the amount of processing we do during debug...
-def getServers(cursor):
+def getServers2(cursor):
     return [
         'oldschool1.runescape.com',
         'oldschool2.runescape.com',
@@ -41,6 +42,7 @@ def evaluate(region = None):
         with connection.cursor() as cursor:
 
             sl = getServers(cursor)
+            #sl = getServers2(cursor)
 
             # need a way to store the lowest N servers, not just the lowest one...
             lowest_avg = float('inf')
@@ -58,28 +60,29 @@ def evaluate(region = None):
                     print("found lower: ", lowest_server, lowest_avg)
 
 
+    TOP_N = 10
     #
-    # Plot the top 5 performing servers
+    # Plot the top N performing servers
 
     # sort by the average pings (item [1]), smallest first
     sorted_aves = sorted(aves.items(), key=lambda x: x[1])
     #print("aves", aves)
     #print("sorted_aves", sorted_aves)
 
-    # get just the top 5 from the list
-    top_five = sorted_aves[:5] # just testing how to get the first five, really need the lowest 'n'
-    #print("top_five: ", top_five)
-    
+    # get the top N from the list
+    top_servers = sorted_aves[:TOP_N]
+    print("top_servers: ", top_servers)
+    pprint.pprint(top_servers)
     # another example of list(zip()), strip off the averages and just get the server names
-    top_five_servers = list(zip(*top_five))[0]
+    top_server_names = list(zip(*top_servers))[0]
     
-    #print("top_five_servers: ", top_five_servers)
-    #print("raw_data for", top_five_servers[0], server_data[top_five_servers[0]])
-    #print(type(server_data[top_five_servers[0]][0][0]))
+    #print("top_server_names: ", top_server_names)
+    #print("raw_data for", top_server_names[0], server_data[top_server_names[0]])
+    #print(type(server_data[top_server_names[0]][0][0]))  # makeing sure that the timestamp is a python datetime.datetime object...
 
     # get the data for the top servers into a format that the plot routine expects
     plot_data = {}
-    for s in top_five_servers:
+    for s in top_server_names:
         plot_data[s] = {"timestamps":list(zip(*server_data[s]))[0],"goodness":list(zip(*server_data[s]))[1]}
         #print("----", s, ":", plot_data[s])
 
