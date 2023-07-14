@@ -1,11 +1,13 @@
 from connector import *
 
 with get_connection() as connection:
-    with connection.cursor as cursor:
-        query = "SELECT ping_latency_ns FROM ping_data WHERE server_hostname = oldschool1.runescape.com"
-        desired_value = 'desired_value'
-        cursor.execute(query, (desired_value,))
+    with connection.cursor() as cursor:
+        query = "SELECT ping_latency_ns FROM ping_data WHERE server_hostname = 'oldschool1.runescape.com'"
+        #query = "SELECT ping_latency_ns, server_hostname FROM ping_data"
+        #desired_value = 'desired_value'
+        cursor.execute(query)
         results = cursor.fetchall()
+        #print(results)
 
         total = 0
         count = 0
@@ -17,11 +19,11 @@ with get_connection() as connection:
         if count > 0:
             average = total / count
             print("The average ping from world 1 is: ", average)
+            print("\nThe total was: ", total)
+            print("\nThe number of entries was: ",count)
+
         else:
             print("No results found.")
-        cursor.close()
-        connection.close()
-
 
 
 
