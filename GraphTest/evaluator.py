@@ -10,21 +10,26 @@ def getServers(cursor):
 
 
 def evaluate(region = None):
+    aves = {}
     with get_connection() as connection:
         with connection.cursor() as cursor:
             sl = getServers(cursor)
-            lowest_avg = 1000000
+            # need a way to store the lowest N servers, not just the lowest one...
+            lowest_avg = float('inf')
             lowest_server = None
             for tuple in sl:
 
-                av = getAveragePing(tuple[0],cursor)
+                av, raw_data = getAveragePing(tuple[0],cursor)
+                if tuple[0] not in aves:
+                    aves[tuple[0]] = av
 
                 if (av < lowest_avg):
 
                     lowest_server = tuple[0]
                     lowest_avg=av
                     print("found lower: ", lowest_server, lowest_avg)
-
+    first_five = list(aves.items())[:5] # just testing how to get the first five, really need the lowest 'n'
+    print("hello: ", first_five)
 evaluate()
 
 

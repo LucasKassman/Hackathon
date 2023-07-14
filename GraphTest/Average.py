@@ -4,8 +4,9 @@ def getAveragePing(servernum,cursor):
     #with get_connection() as connection:
         #with connection.cursor() as cursor:
 
+            # example of you to create a query for a specific timeframe
             now = datetime.datetime.now()
-            starttime = now - datetime.timedelta(days=1, hours=12, minutes=1)
+            starttime = now - datetime.timedelta(days=2, hours=12, minutes=1)
             #print(starttime)
 
             #query = "SELECT ping_latency_ns FROM ping_data WHERE server_hostname = %s"
@@ -20,7 +21,7 @@ def getAveragePing(servernum,cursor):
             total = 0
             count = 0
             for row in results:
-                value = row[1]
+                value = row[1]  # since we're getting the whole row and not just ping_latency_ns, need to index into ping_latency_ns
                 total += value
                 count += 1
 
@@ -29,10 +30,11 @@ def getAveragePing(servernum,cursor):
                 #print("The average ping from world 1 is: ", average)
                 #print("\nThe total was: ", total)
                 #print("\nThe number of entries was: ",count)
-                return average
+                return average, results
             else:
                 print("No results found for ", servernum)
                 #ERROR MSG
+                return float("inf"), {}
 
 
 
