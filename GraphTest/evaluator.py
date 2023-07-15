@@ -1,6 +1,6 @@
 import pprint
 from Average import *
-from graphtest import *
+from graphtest3 import *
 
 #
 # return a list of servers to probe.
@@ -13,6 +13,17 @@ def getServers(cursor):
     # return just the server element, i.e. first item in the tuple
     return list(zip(*results))[0]
     #return results
+
+#
+# return the most recent time for recorded ping data
+def getLastPingTime(cursor):
+    query = "SELECT max(ping_time) FROM test.ping_data"
+    cursor.execute(query)
+    results = cursor.fetchall()
+    print(results)
+    print(results[0])
+    print(results[0][0])
+    return results[0][0]
 
 #
 # Test version of "getServers" to limit the amount of processing we do during debug...
@@ -36,13 +47,12 @@ def getServers2(cursor):
 def evaluate(region = None):
     aves = {}
     server_data = {}
-    now = datetime.datetime.now()
-    starttime = now - datetime.timedelta(days=2, hours=12, minutes=1)
     with get_connection() as connection:
         with connection.cursor() as cursor:
-
-            sl = getServers(cursor)
-            #sl = getServers2(cursor)
+            starttime = getLastPingTime(cursor) - datetime.timedelta(hours=2)
+            
+            #sl = getServers(cursor)
+            sl = getServers2(cursor)
 
             # need a way to store the lowest N servers, not just the lowest one...
             lowest_avg = float('inf')
@@ -60,7 +70,7 @@ def evaluate(region = None):
                     print("found lower: ", lowest_server, lowest_avg)
 
 
-    TOP_N = 10
+    TOP_N = 5
     #
     # Plot the top N performing servers
 
