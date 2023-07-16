@@ -1,4 +1,5 @@
 import pprint
+import datetime
 from Average import *
 from graphtest3 import *
 
@@ -50,23 +51,19 @@ def evaluate(region = None):
     with get_connection() as connection:
         with connection.cursor() as cursor:
             starttime = getLastPingTime(cursor) - datetime.timedelta(hours=2)
-            
-            #sl = getServers(cursor)
-            sl = getServers2(cursor)
 
-            # need a way to store the lowest N servers, not just the lowest one...
+            sl = getServers(cursor)
+
+            av, raw_data = getAveragePing(sl, starttime, cursor)
             lowest_avg = float('inf')
-            lowest_server = None
+            for i in range(len(sl)):
+                server = sl[i]
+                aves[server] = av[i]
+                server_data[server] = raw_data[i]
 
-            for server in sl:
-                av, raw_data = getAveragePing(server,starttime,cursor)
-                #if server not in aves:
-                aves[server] = av
-                server_data[server] = raw_data
-
-                if (av < lowest_avg):
+                if av[i] < lowest_avg:
                     lowest_server = server
-                    lowest_avg=av
+                    lowest_avg = av[i]
                     print("found lower: ", lowest_server, lowest_avg)
 
 
@@ -92,8 +89,13 @@ def evaluate(region = None):
 
     # get the data for the top servers into a format that the plot routine expects
     plot_data = {}
+
     for s in top_server_names:
-        plot_data[s] = {"timestamps":list(zip(*server_data[s]))[0],"goodness":list(zip(*server_data[s]))[1]}
+        plot_data[s] = {
+            "timestamps": [row[0] for row in raw_data if row[2] == s],
+            "goodness": [row[1] for row in raw_data if row[2] == s]
+        }
+        #plot_data[s] = {"timestamps":list(zip(*server_data[s]))[0],"goodness":list(zip(*server_data[s]))[1]}
         #print("----", s, ":", plot_data[s])
 
     # okay, got the data, plot it!
