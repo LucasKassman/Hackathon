@@ -93,7 +93,7 @@ def evaluate(region = None):
     # get the data for the top servers into a format that the plot routine expects
     plot_data = {}
     for s in top_server_names:
-        plot_data[s] = {"timestamps":list(zip(*server_data[s]))[0],"goodness":list(zip(*server_data[s]))[1]}
+        plot_data[s] = {"average":aves[s],"timestamps":list(zip(*server_data[s]))[0],"goodness":list(zip(*server_data[s]))[1]}
         #print("----", s, ":", plot_data[s])
 
     # okay, got the data, plot it!
