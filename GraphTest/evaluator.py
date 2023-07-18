@@ -47,6 +47,7 @@ def getServers2(cursor):
 # Evaluate all servers (TBD: for a given region)
 def evaluate(region = None):
     aves = {}
+    weighted_averages = {}
     server_data = {}
     with get_connection() as connection:
         with connection.cursor() as cursor:
@@ -54,10 +55,15 @@ def evaluate(region = None):
 
             sl = getServers(cursor)
 
-            av, raw_data = getAveragePing(sl, starttime, cursor)
+            av, raw_data, weighted_avgs = getAveragePing(sl, starttime, cursor)
             lowest_avg = float('inf')
+            lowest_weighted_avg = float('inf')
+
+
+
             for i in range(len(sl)):
                 server = sl[i]
+                weighted_averages[server] = weighted_avgs[i]
                 aves[server] = av[i]
                 server_data[server] = raw_data[i]
 
@@ -65,6 +71,10 @@ def evaluate(region = None):
                     lowest_server = server
                     lowest_avg = av[i]
                     print("found lower: ", lowest_server, lowest_avg)
+                if weighted_avgs[i] < lowest_weighted_avg:
+                    lowest_weighted_server = server
+                    lowest_weighted_avg = weighted_avgs[i]
+                    print("found lower weighted: ", lowest_server, lowest_avg)
 
 
     TOP_N = 5
@@ -73,13 +83,17 @@ def evaluate(region = None):
 
     # sort by the average pings (item [1]), smallest first
     sorted_aves = sorted(aves.items(), key=lambda x: x[1])
+    sorted_weighted_aves = sorted(weighted_averages.items(), key=lambda x: x[1])
     #print("aves", aves)
     #print("sorted_aves", sorted_aves)
 
     # get the top N from the list
     top_servers = sorted_aves[:TOP_N]
+    top_weighted_servers = sorted_weighted_aves[:TOP_N]
     print("top_servers: ", top_servers)
+    print("top_weighted_servers: ", top_weighted_servers)
     pprint.pprint(top_servers)
+    pprint.pprint(top_weighted_servers)
     # another example of list(zip()), strip off the averages and just get the server names
     top_server_names = list(zip(*top_servers))[0]
     
