@@ -55,9 +55,10 @@ def evaluate(region = None):
 
             sl = getServers(cursor)
 
-            av, raw_data, weighted_avgs = getAveragePing(sl, starttime, cursor)
+            av, raw_data, weighted_avgs,variances = getAveragePing(sl, starttime, cursor)
             lowest_avg = float('inf')
             lowest_weighted_avg = float('inf')
+            lowest_variance = float('inf')
 
 
 
@@ -66,6 +67,7 @@ def evaluate(region = None):
                 weighted_averages[server] = weighted_avgs[i]
                 aves[server] = av[i]
                 server_data[server] = raw_data[i]
+
 
                 if av[i] < lowest_avg:
                     lowest_server = server
@@ -77,6 +79,11 @@ def evaluate(region = None):
                     lowest_weighted_avg = weighted_avgs[i]
                     numbers_only = ''.join(filter(str.isdigit, lowest_weighted_server))
                     print("found lower weighted: ", numbers_only, "weighted avg is: ", lowest_weighted_avg)
+                if variances[i] < lowest_variance:
+                    lowest_variance_server = server
+                    lowest_variance = variances[i]
+                    numbers_only = ''.join(filter(str.isdigit, lowest_variance_server))
+                    print("found lower variance server: ", numbers_only, "variance is: ",lowest_variance)
 
 
     TOP_N = 5

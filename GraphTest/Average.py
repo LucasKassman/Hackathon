@@ -29,16 +29,15 @@ def calculateWeight(row,reference_time):
     row_time = row['ping_time']
     time_difference = abs(reference_time - row_time)
     seconds_apart = time_difference.total_seconds()
-    weight = exponential_decay(seconds_apart, .001)
-    value = value * weight
+    weight = exponential_decay(seconds_apart, .00001)
     return value,weight
-
 
 
 def getAveragePing(servernums, since, cursor):
     averages = []
     weightedAverages = []
     results = []
+    variances = []
 
     data,passedResults = getData(servernums, since, cursor)
 
@@ -50,10 +49,10 @@ def getAveragePing(servernums, since, cursor):
         total_weight = 0
 
         for row in server_data:
-            weighted,incremental_weight = calculateWeight(row, since)
+            value,incremental_weight = calculateWeight(row, since)
+            weighted = value * incremental_weight
             totalWeighted += weighted
             total_weight += incremental_weight
-            value = row['ping_latency_ns']
             total += value
             count += 1
 
@@ -68,6 +67,15 @@ def getAveragePing(servernums, since, cursor):
         weightedAverages.append(weightedAverage)
         results.append(server_data)
 
-    return averages, passedResults, weightedAverages
+        #calculating variance of each server
+
+        total_variance = 0
+        for row in server_data:
+            value, incremental_weight = calculateWeight(row, since)
+            weighted_sq_deviation = incremental_weight * (value - weightedAverage) ** 2
+            total_variance += weighted_sq_deviation
+
+        variances.append(total_variance / total_weight)
+    return averages, passedResults, weightedAverages, variances
 
 
