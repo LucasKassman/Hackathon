@@ -31,7 +31,7 @@ def calculateWeight(row,reference_time):
     seconds_apart = time_difference.total_seconds()
     weight = exponential_decay(seconds_apart, .001)
     value = value * weight
-    return value
+    return value,weight
 
 
 
@@ -47,17 +47,19 @@ def getAveragePing(servernums, since, cursor):
         total = 0
         count = 0
         totalWeighted = 0
+        total_weight = 0
 
         for row in server_data:
-            weighted = calculateWeight(row, since)
+            weighted,incremental_weight = calculateWeight(row, since)
             totalWeighted += weighted
+            total_weight += incremental_weight
             value = row['ping_latency_ns']
             total += value
             count += 1
 
         if count > 0:
             average = total / count
-            weightedAverage = totalWeighted / count
+            weightedAverage = totalWeighted / total_weight
         else:
             average = float("inf")
             weightedAverage = float('int')

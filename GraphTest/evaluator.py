@@ -70,11 +70,13 @@ def evaluate(region = None):
                 if av[i] < lowest_avg:
                     lowest_server = server
                     lowest_avg = av[i]
-                    print("found lower: ", lowest_server, lowest_avg)
+                    numbers_only = ''.join(filter(str.isdigit,lowest_server))
+                    print("found lower: ", numbers_only, "avg is: ", lowest_avg)
                 if weighted_avgs[i] < lowest_weighted_avg:
                     lowest_weighted_server = server
                     lowest_weighted_avg = weighted_avgs[i]
-                    print("found lower weighted: ", lowest_server, lowest_avg)
+                    numbers_only = ''.join(filter(str.isdigit, lowest_weighted_server))
+                    print("found lower weighted: ", numbers_only, "weighted avg is: ", lowest_weighted_avg)
 
 
     TOP_N = 5
@@ -95,7 +97,8 @@ def evaluate(region = None):
     pprint.pprint(top_servers)
     pprint.pprint(top_weighted_servers)
     # another example of list(zip()), strip off the averages and just get the server names
-    top_server_names = list(zip(*top_servers))[0]
+    #top_server_names = list(zip(*top_servers))[0]
+    top_server_names = list(zip(*top_weighted_servers))[0]
     
     #print("top_server_names: ", top_server_names)
     #print("raw_data for", top_server_names[0], server_data[top_server_names[0]])
@@ -109,7 +112,7 @@ def evaluate(region = None):
         #plot_data[s] = {"average":aves[s],"timestamps":list(zip(*server_data[s]))[0],"goodness":list(zip(*server_data[s]))[1]}
 
         plot_data[s] = {
-            "average": aves[s],
+            "average": weighted_averages[s],
             "timestamps": [row[0] for row in raw_data if row[2] == s],
             "goodness": [row[1] for row in raw_data if row[2] == s]
         }
