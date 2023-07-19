@@ -60,39 +60,6 @@ class MainWindow(tk.Tk):
         self.fullServerList = getServers()
         #ttk delete this:  self.grid(row=2, column=4)
  
-    # create a listbox
-    def CreateListbox(self,title, values, bSelectAll):
-        label = tk.Label(self,
-			text = title,
-		#	font = ("Times New Roman", 10),
-			padx = 10, pady = 10)
-        label.pack()
-        
-        # for scrolling vertically
-        yscrollbar = tk.Scrollbar(self)
-        yscrollbar.pack(side = tk.LEFT, fill = tk.Y)
-        activeStyle = "dotbox" # dotbox, non, underline...
-        sm = "extended" # single, browse, multiple, or extended
-        list = tk.Listbox(self, selectmode = sm, activestyle=activeStyle,
-			yscrollcommand = yscrollbar.set)
-        # Widget expands horizontally and
-        # vertically by assigning both to
-        # fill option
-        list.pack(padx = 10, pady = 10,
-	        expand = tk.YES, fill = "both", side=tk.LEFT)
-
-        for item in values:
-	       	list.insert(tk.END, item)
-                
-        # Attach listbox to vertical scrollbar
-        yscrollbar.config(command = list.yview)
-
-        if bSelectAll:
-            #start with everthing selected
-            list.select_set(0, tk.END)
-        
-        return list
-
     def selectedServers(self):
         return self.selected_display.getAll()
             
