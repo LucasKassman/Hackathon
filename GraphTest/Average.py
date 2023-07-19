@@ -1,5 +1,4 @@
 import datetime
-import timedelta
 import math
 from connector import *
 
