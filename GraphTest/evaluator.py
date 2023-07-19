@@ -5,15 +5,16 @@ from graphtest3 import *
 
 #
 # return a list of servers to probe.
-def getServers(cursor):
-
-    query = "SELECT server FROM server_list WHERE valid= 'TRUE'"
-    cursor.execute(query)
-    results = cursor.fetchall()
-    #print(results)
-    # return just the server element, i.e. first item in the tuple
-    return list(zip(*results))[0]
-    #return results
+def getServers():
+    with get_connection() as connection:
+        with connection.cursor() as cursor:
+            query = "SELECT server FROM server_list WHERE valid= 'TRUE'"
+            cursor.execute(query)
+            results = cursor.fetchall()
+            #print(results)
+            # return just the server element, i.e. first item in the tuple
+            return list(zip(*results))[0]
+            #return results
 
 #
 # return the most recent time for recorded ping data
@@ -45,15 +46,12 @@ def getServers2(cursor):
 
 #
 # Evaluate all servers (TBD: for a given region)
-def evaluate(region = None):
+def evaluate(sl, region = None):
     aves = {}
     server_data = {}
     with get_connection() as connection:
         with connection.cursor() as cursor:
             starttime = getLastPingTime(cursor) - datetime.timedelta(hours=2)
-
-            sl = getServers(cursor)
-
             av, raw_data = getAveragePing(sl, starttime, cursor)
             lowest_avg = float('inf')
             for i in range(len(sl)):
@@ -104,7 +102,10 @@ def evaluate(region = None):
         #print("----", s, ":", plot_data[s])
 
     # okay, got the data, plot it!
+    #plotIt(plot_data)
+    return plot_data
+
+if __name__ == '__main__':
+    sl = getServers()
+    plot_data = evaluate(sl)
     plotIt(plot_data)
-
-
-evaluate()
