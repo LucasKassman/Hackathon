@@ -17,21 +17,73 @@ class MainWindow(tk.Tk):
         super().__init__()
         print("in MainWindow  __init__")
         self.title(title)
-        self.geometry("400x400")
+        self.geometry("400x800")
         self.subWindows=[] # a list of all the child windows we have
-    
+        self.fullServerList = getServers()
+ 
+    # create a listbox
+    def CreateListbox(self,title, values, bSelectAll):
+        label = tk.Label(self,
+			text = title,
+		#	font = ("Times New Roman", 10),
+			padx = 10, pady = 10)
+        label.pack()
+        
+        # for scrolling vertically
+        yscrollbar = tk.Scrollbar(self)
+        yscrollbar.pack(side = tk.RIGHT, fill = tk.Y)
+        activeStyle = "dotbox" # dotbox, non, underline...
+        sm = "extended" # single, browse, multiple, or extended
+        list = tk.Listbox(self, selectmode = sm, activestyle=activeStyle,
+			yscrollcommand = yscrollbar.set)
+        # Widget expands horizontally and
+        # vertically by assigning both to
+        # fill option
+        list.pack(padx = 10, pady = 10,
+	        expand = tk.YES, fill = "both")
+
+        for item in values:
+	       	list.insert(tk.END, item)
+                
+        # Attach listbox to vertical scrollbar
+        yscrollbar.config(command = list.yview)
+
+        if bSelectAll:
+            #start with everthing selected
+            list.select_set(0, tk.END)
+        
+        return list
+
+    def selectedServers(self):
+        return self.selected_display.get(0,tk.END)
+            
     # Add the option buttons to this window.  Could be modified to add more complex widgets
     def AddButtons(self):
-        tk.Button(mw, text="Measure Servers", command=self.launch).pack(pady=10)
-        tk.Button(mw, text="Show", command=self.show).pack(pady=10) # just a test case for now
-        tk.Button(mw, text="Hide", command=self.hide).pack(pady=10) # just a test case for now
+        tk.Button(self, text="Measure Servers", command=self.launch).pack(pady=10)
+        tk.Button(self, text="Show", command=self.show).pack(pady=10) # just a test case for now
+        tk.Button(self, text="Hide", command=self.hide).pack(pady=10) # just a test case for now
+
+        self.server_selector   = self.CreateListbox("Select from these Servers", self.fullServerList, True)
+        self.selected_display  = self.CreateListbox("Selected Servers", self.fullServerList, False)
+        
+        def on_select(evt):
+            self.selected_display.delete(0, tk.END)
+            for i in self.server_selector.curselection():
+                self.selected_display.insert(tk.END, self.server_selector.get(i))
+
+        self.server_selector.bind('<<ListboxSelect>>', on_select)
+
 
     # launch the child window (i.e. graph)
     def launch(self):
-        w = ChildWindow()
-        w.title("Server Evaluation")
-        w.geometry("1100x1000")
-        self.subWindows.append(w)
+        sl = self.selectedServers()
+        if len(sl) > 0:
+            w = ChildWindow(sl)
+            w.title("Server Evaluation")
+            w.geometry("1100x1000")
+            self.subWindows.append(w)
+        else:
+            print("no servers selected!!!")
 
     # show all child windows
     def show(self):
@@ -63,31 +115,31 @@ class MainWindow(tk.Tk):
 # Window containing the plot data
 # This is a subclass of Toplevel which allows us to create indepent windows.
 class ChildWindow(tkinter.Toplevel):
-    def __init__(self):
+    def __init__(self, sl):
         super().__init__()
         print("in ChildWindow __init__")
         self.g = Grapher(self)  # create a Grapher object with this Toplevel as the base
-        sl = getServers() # get the list of servers
+        #sl = getServers() # get the list of servers
         plot_data = evaluate(sl) # evaluate them
         for server in plot_data: # add the data to the graph
             self.g.addData(server, plot_data[server]['average'], plot_data[server]['timestamps'],plot_data[server]['goodness'])
 
 
+if __name__ == '__main__':
+    mw = MainWindow("Runescape Server Evaluation")
+    mw.AddButtons()
 
-mw = MainWindow("Runescape Server Evaluation")
-mw.AddButtons()
+    # method to clean up.
+    # Code appears to exit properly without this when run from the command line, but not when debugging in VS Code...
+    def on_closing():
+        print("in on_closing")
+        #if messagebox.askokcancel("Quit", "Do you want to quit?"):
+        if True:
+            print("bye...")
+            mw.destroy()
+            mw.quit()
 
-# method to clean up.
-# Code appears to exit properly without this when run from the command line, but not when debugging in VS Code...
-def on_closing():
-    print("in on_closing")
-    #if messagebox.askokcancel("Quit", "Do you want to quit?"):
-    if True:
-        print("bye...")
-        mw.destroy()
-        mw.quit()
+    mw.protocol("WM_DELETE_WINDOW", on_closing)
 
-mw.protocol("WM_DELETE_WINDOW", on_closing)
-
-# Execute Tkinter
-mw.mainloop()
+    # Execute Tkinter
+    mw.mainloop()
