@@ -99,38 +99,24 @@ class Grapher(tk.Frame):
 
         self.ax.figure.canvas.draw()
 
+# for test purposes, get stand-alone Grapher object
+#  -- i.e. clients don't need to know about tk...
+def getGrapher():
+    return Grapher(tk.Tk())
 
-def plotIt(mydata):
-    root = tk.Tk()
-
-    g = Grapher(root)
-
-    for server in mydata:
-        g.addData(server, mydata[server]['average'], mydata[server]['timestamps'],mydata[server]['goodness'])
-
+# for test purpose, call root's main event loop to process events while window is presented
+def waitGrapher(g):
     def on_closing():
         print("bye...")
-        root.destroy()
-        root.quit()
-
-
-    root.protocol("WM_DELETE_WINDOW", on_closing)
-    root.mainloop()
-
+        g.parent.destroy()
+        g.parent.quit()
+    g.parent.protocol("WM_DELETE_WINDOW", on_closing)
+    g.parent.mainloop()
 
 
 if __name__ == '__main__':
-    root = tk.Tk()
-    def on_closing():
-        print("in on_closing")
-        print("bye...")
-        root.destroy()
-        root.quit()
-    
-    root.protocol("WM_DELETE_WINDOW", on_closing)
-
-    g = Grapher(root)
+    g = getGrapher()
     # just some test data
     g.addData("server_name", 21, [1, 2, 3, 4, 5], [10, 20, 13, 25, 20])
     g.addData("server_name2", 22, [1, 2, 3, 3.5,4.5,5], [20, 30, 33, 25, 30, 17])
-    root.mainloop()
+    waitGrapher(g)

@@ -107,5 +107,10 @@ def evaluate(sl, region = None):
 
 if __name__ == '__main__':
     sl = getServers()
+    g = getGrapher()
     plot_data = evaluate(sl)
-    plotIt(plot_data)
+    for server in plot_data:
+        g.addData(server, plot_data[server]['average'], plot_data[server]['timestamps'],plot_data[server]['goodness'])
+
+    waitGrapher(g)
+    #plotIt(plot_data)
