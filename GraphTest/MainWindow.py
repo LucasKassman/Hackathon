@@ -26,17 +26,28 @@ class LB_Items(tk.Frame):
             self.list.pack(padx = 10, pady = 10,
 	             expand = tk.YES, fill = "both", side=tk.LEFT)
 
-            for item in values:
-	       	    self.list.insert(tk.END, item)
+
                 
             # Attach listbox to vertical scrollbar
             self.yscrollbar.config(command = self.list.yview)
 
-            if bSelectAll:
+            self.set(values, bSelectAll)
+            #if bSelectAll:
+            if False:
+                for item in values:
+	       	        self.list.insert(tk.END, item)
              #start with everthing selected
                 self.list.select_set(0, tk.END)
             
             self.pack(fill="both", expand=True, side=side)
+    
+    def set(self, servers, bSelectAll):
+        self.list.delete(0, tk.END)
+        for s in servers:
+            self.list.insert(tk.END, s)
+        if bSelectAll:
+            #start with everthing selected
+            self.list.select_set(0, tk.END)
 
     #helper menthod
     def get(self,i):
@@ -57,20 +68,28 @@ class MainWindow(tk.Tk):
         self.title(title)
         self.geometry("600x400")
         self.subWindows=[] # a list of all the child windows we have
-        self.fullServerList = getServers()
-        #ttk delete this:  self.grid(row=2, column=4)
+
  
     def selectedServers(self):
         return self.selected_display.getAll()
             
     # Add the option buttons to this window.  Could be modified to add more complex widgets
     def AddButtons(self):
-        tk.Button(self, text="Measure Servers", command=self.launch).pack(pady=10)
-        tk.Button(self, text="Show", command=self.show).pack(pady=10) # just a test case for now
-        tk.Button(self, text="Hide", command=self.hide).pack(pady=10) # just a test case for now
+        f1 = tk.Frame(self) # frame for the two top buttons
+        f2 = tk.Frame(self) # frame for the three bottom buttons.
+        
+        tk.Button(f1, text="Measure ALL Servers", command=self.measure_all_servers).place(relx=0.25, rely=0.5, anchor=tk.CENTER)
+        tk.Button(f1, text="Measure SELECTED Servers", command=self.measure_selected_servers).place(relx=0.75, rely=0.5, anchor=tk.CENTER)
+        tk.Button(f2, text="Refresh Server List", command=self.refresh_server_list).place(relx=0.2, rely=0.5, anchor=tk.CENTER)
+        tk.Button(f2, text="Show", command=self.show).place(relx=0.5, rely=0.5, anchor=tk.CENTER)
+        tk.Button(f2, text="Hide", command=self.hide).place(relx=0.8, rely=0.5, anchor=tk.CENTER)
 
-        self.server_selector   = LB_Items(self,"Select from these Servers", self.fullServerList, True)
-        self.selected_display  = LB_Items(self, "Selected Servers", self.fullServerList, False, tk.RIGHT)
+        f1.pack(expand=True, fill=tk.BOTH)
+        f2.pack(expand=True, fill=tk.BOTH, side=tk.BOTTOM)
+
+        fullServerList = getServers()
+        self.server_selector   = LB_Items(self,"Select from these Servers", fullServerList, True)
+        self.selected_display  = LB_Items(self, "Selected Servers", fullServerList, False, tk.RIGHT)
 
         def on_select(evt):
             if (evt.widget.curselection()):
@@ -80,10 +99,19 @@ class MainWindow(tk.Tk):
 
         self.server_selector.list.bind('<<ListboxSelect>>', on_select)
 
+    def refresh_server_list(self):
+        fullServerList = getServers()
+        self.server_selector.set(servers=fullServerList,bSelectAll=True)
+        self.selected_display.set(servers=fullServerList,bSelectAll=False)
 
-    # launch the child window (i.e. graph)
-    def launch(self):
-        sl = self.selectedServers()
+    
+    def measure_selected_servers(self):
+        self.measure_servers(self.selectedServers())
+        
+    def measure_all_servers(self):
+        self.measure_servers(self.server_selector.list.get(0,tk.END))
+        
+    def measure_servers(self,sl):
         if len(sl) > 0:
             w = ChildWindow(sl)
             w.title("Server Evaluation")
@@ -104,10 +132,6 @@ class MainWindow(tk.Tk):
                 w.deiconify()
             except:
                 self.subWindows.remove(w)
-
-        # If someone presses "show" and there's nothing to show, then launch a window for them!
-        if len(self.subWindows) == 0:
-            self.launch()                 
     
     # hide all child windows
     def hide(self):
