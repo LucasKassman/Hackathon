@@ -67,9 +67,10 @@ class MainWindow(tk.Tk):
         self.selected_display  = self.CreateListbox("Selected Servers", self.fullServerList, False)
         
         def on_select(evt):
-            self.selected_display.delete(0, tk.END)
-            for i in self.server_selector.curselection():
-                self.selected_display.insert(tk.END, self.server_selector.get(i))
+            if (evt.widget.curselection()):
+                self.selected_display.delete(0, tk.END)
+                for i in self.server_selector.curselection():
+                    self.selected_display.insert(tk.END, self.server_selector.get(i))
 
         self.server_selector.bind('<<ListboxSelect>>', on_select)
 
