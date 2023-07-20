@@ -75,8 +75,8 @@ class MainWindow(tk.Tk):
             
     # Add the option buttons to this window.  Could be modified to add more complex widgets
     def AddButtons(self):
-        f1 = tk.Frame(self) # frame for the two top buttons
-        f2 = tk.Frame(self) # frame for the three bottom buttons.
+        f1 = tk.Frame(self, height=60) # frame for the two top buttons
+        f2 = tk.Frame(self, height=60) # frame for the three bottom buttons.
         
         tk.Button(f1, text="Measure ALL Servers", command=self.measure_all_servers).place(relx=0.25, rely=0.5, anchor=tk.CENTER)
         tk.Button(f1, text="Measure SELECTED Servers", command=self.measure_selected_servers).place(relx=0.75, rely=0.5, anchor=tk.CENTER)
@@ -84,8 +84,8 @@ class MainWindow(tk.Tk):
         tk.Button(f2, text="Show", command=self.show).place(relx=0.5, rely=0.5, anchor=tk.CENTER)
         tk.Button(f2, text="Hide", command=self.hide).place(relx=0.8, rely=0.5, anchor=tk.CENTER)
 
-        f1.pack(expand=True, fill=tk.BOTH)
-        f2.pack(expand=True, fill=tk.BOTH, side=tk.BOTTOM)
+        f1.pack(expand=False, fill=tk.BOTH)
+        f2.pack(expand=False, fill=tk.BOTH, side=tk.BOTTOM)
 
         fullServerList = getServers()
         self.server_selector   = LB_Items(self,"Select from these Servers", fullServerList, True)
