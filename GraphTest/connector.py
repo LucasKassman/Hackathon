@@ -3,6 +3,7 @@ import MySQLdb
 
 # Created a testDB_read user:
 #       GRANT SELECT ON test.* TO '4P4Mongv3vUVSHz.testDB_reader'@'%';
+#       SET PASSWORD FOR '4P4Mongv3vUVSHz.testDB_reader' = '#%6mQjE5A#kKGQ$b';
 # can show list of users by:
 #   SELECT * FROM mysql.user;
 
@@ -23,7 +24,7 @@ def get_connection():
     host="gateway01.eu-central-1.prod.aws.tidbcloud.com",
     port=4000,
     user=f"{user_base}.testDB_reader",
-#    password=password,
+    password="#%6mQjE5A#kKGQ$b",
     database="test",
     ssl_mode="VERIFY_IDENTITY",
     ssl={
