@@ -78,11 +78,10 @@ class Grapher(tk.Frame):
             self.servers[server].makePlot(server, ave, times, pings, self.bFirstItem)
         self.bFirstItem = False
 
-        plt.legend()
-
         self.canvas = FigureCanvasTkAgg(self.fig, master=self.parent)
         self.canvas.draw()
         self.canvas.get_tk_widget().grid(row=2, column=0, ipadx=40, ipady=20)
+        self.checkbutton_changed() # update the legend
 
     def checkbutton_changed(self):
         print('---')
