@@ -13,11 +13,11 @@ else:
 def get_user_base():
     return user_base
 
-def get_connection():
+def get_connection(user="root", password=password):
     return MySQLdb.connect(
     host="gateway01.eu-central-1.prod.aws.tidbcloud.com",
     port=4000,
-    user=f"{user_base}.root",
+    user=f"{user_base}.{user}",
     password=password,
     database="test",
     ssl_mode="VERIFY_IDENTITY",

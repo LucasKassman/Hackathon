@@ -7,6 +7,7 @@ with get_connection() as connection:
             ping_latency_ns integer,
             server_hostname text,
             location text,
-            ping_type smallint
+            ping_type smallint,
+            ip_addr text,
         );
     """)
