@@ -6,7 +6,7 @@ from graphtest3 import *
 #
 # return a list of servers to probe.
 def getServers():
-    with get_connection() as connection:
+    with get_read_only_connection() as connection:
         with connection.cursor() as cursor:
             query = "SELECT server FROM server_list WHERE valid= 'TRUE'"
             cursor.execute(query)
@@ -49,7 +49,7 @@ def getServers2(cursor):
 def evaluate(sl, region = None):
     aves = {}
     server_data = {}
-    with get_connection() as connection:
+    with get_read_only_connection() as connection:
         with connection.cursor() as cursor:
             starttime = getLastPingTime(cursor) - datetime.timedelta(hours=2)
             av, raw_data = getAveragePing(sl, starttime, cursor)
