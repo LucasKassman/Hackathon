@@ -1,7 +1,6 @@
 import pprint
 import datetime
-from Average import *
-from graphtest3 import *
+from GraphTest.Average import *
 
 #
 # return a list of servers to probe.

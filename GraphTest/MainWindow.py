@@ -1,8 +1,8 @@
 # Import Library
 import tkinter as tk
 from tkinter import ttk
-from graphtest3 import *
-from evaluator import *
+from GraphTest.graphtest3 import *
+from GraphTest.evaluator import *
 
 class LB_Items(tk.Frame):
     def __init__(self, root, title, values, bSelectAll, side=tk.LEFT):

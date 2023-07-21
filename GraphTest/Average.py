@@ -1,5 +1,5 @@
 import datetime
-from connector import *
+from Ping_Gathering.connector import *
 
 def getData(servernums, starttime, cursor):
     server_list = "', '".join(servernums)
