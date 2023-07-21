@@ -46,12 +46,12 @@ def getServers2(cursor):
 
 #
 # Evaluate all servers (TBD: for a given region)
-def evaluate(sl, region = None):
+def evaluate(sl, region = None, hours=2):
     aves = {}
     server_data = {}
     with get_connection() as connection:
         with connection.cursor() as cursor:
-            starttime = getLastPingTime(cursor) - datetime.timedelta(hours=2)
+            starttime = getLastPingTime(cursor) - datetime.timedelta(hours=hours)
             av, raw_data = getAveragePing(sl, starttime, cursor)
             lowest_avg = float('inf')
             for i in range(len(sl)):

@@ -76,16 +76,22 @@ class MainWindow(tk.Tk):
     # Add the option buttons to this window.  Could be modified to add more complex widgets
     def AddButtons(self):
         f1 = tk.Frame(self, height=60) # frame for the two top buttons
-        f2 = tk.Frame(self, height=60) # frame for the three bottom buttons.
+        f2 = tk.Frame(self, height=150) # frame for the three bottom buttons and slider
+        f2_1 = tk.Frame(f2, height=75) # frame for the slider
+        f2_1_1 = tk.Frame(f2_1, height=75) # frame for the slider
+        f2_2 = tk.Frame(f2, height=75) # frame for the three bottom buttons
         
         tk.Button(f1, text="Measure ALL Servers", command=self.measure_all_servers).place(relx=0.25, rely=0.5, anchor=tk.CENTER)
         tk.Button(f1, text="Measure SELECTED Servers", command=self.measure_selected_servers).place(relx=0.75, rely=0.5, anchor=tk.CENTER)
-        tk.Button(f2, text="Refresh Server List", command=self.refresh_server_list).place(relx=0.2, rely=0.5, anchor=tk.CENTER)
-        tk.Button(f2, text="Show", command=self.show).place(relx=0.5, rely=0.5, anchor=tk.CENTER)
-        tk.Button(f2, text="Hide", command=self.hide).place(relx=0.8, rely=0.5, anchor=tk.CENTER)
+        tk.Button(f2_2, text="Refresh Server List", command=self.refresh_server_list).place(relx=0.2, rely=0.5, anchor=tk.CENTER)
+        tk.Button(f2_2, text="Show", command=self.show).place(relx=0.5, rely=0.5, anchor=tk.CENTER)
+        tk.Button(f2_2, text="Hide", command=self.hide).place(relx=0.8, rely=0.5, anchor=tk.CENTER)
 
         f1.pack(expand=False, fill=tk.BOTH)
         f2.pack(expand=False, fill=tk.BOTH, side=tk.BOTTOM)
+        f2_1.pack(expand=False, fill=tk.BOTH, side=tk.TOP)
+        f2_1_1.pack()
+        f2_2.pack(expand=False, fill=tk.BOTH, side=tk.BOTTOM)
 
         fullServerList = getServers()
         self.server_selector   = LB_Items(self,"Select from these Servers", fullServerList, True)
@@ -99,6 +105,11 @@ class MainWindow(tk.Tk):
 
         self.server_selector.list.bind('<<ListboxSelect>>', on_select)
 
+        self.hours_label = tk.Label(f2_1_1, text="Hours").grid(column=0, row=0)
+        self.hours = tk.Scale(f2_1_1, from_=1.0, to=24.0, orient=tk.HORIZONTAL, resolution=0.5, length=200)
+        self.hours.set(2)
+        self.hours.grid(column=1, row=0)
+
     def refresh_server_list(self):
         fullServerList = getServers()
         self.server_selector.set(servers=fullServerList,bSelectAll=True)
@@ -106,14 +117,14 @@ class MainWindow(tk.Tk):
 
     
     def measure_selected_servers(self):
-        self.measure_servers(self.selectedServers())
+        self.measure_servers(self.selectedServers(), self.hours.get())
         
     def measure_all_servers(self):
-        self.measure_servers(self.server_selector.list.get(0,tk.END))
-        
-    def measure_servers(self,sl):
+        self.measure_servers(self.server_selector.list.get(0,tk.END),self.hours.get())
+
+    def measure_servers(self,sl,hours):        
         if len(sl) > 0:
-            w = ChildWindow(sl)
+            w = ChildWindow(sl,hours)
             w.title("Server Evaluation")
             w.geometry("1100x1000")
             self.subWindows.append(w)
@@ -146,12 +157,12 @@ class MainWindow(tk.Tk):
 # Window containing the plot data
 # This is a subclass of Toplevel which allows us to create indepent windows.
 class ChildWindow(tk.Toplevel):
-    def __init__(self, sl):
+    def __init__(self, sl, hours):
         super().__init__()
         print("in ChildWindow __init__")
         self.g = Grapher(self)  # create a Grapher object with this Toplevel as the base
         #sl = getServers() # get the list of servers
-        plot_data = evaluate(sl) # evaluate them
+        plot_data = evaluate(sl, hours) # evaluate them
         for server in plot_data: # add the data to the graph
             self.g.addData(server, plot_data[server]['average'], plot_data[server]['timestamps'],plot_data[server]['goodness'])
 
