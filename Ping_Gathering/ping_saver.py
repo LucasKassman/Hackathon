@@ -1,12 +1,11 @@
 import time
 import datetime
-import MySQLdb
 import requests
 import json
 
 from connector import get_connection, execute_sql
 
-with open("servers.json") as f:
+with open("Ping_Gathering/servers.json") as f:
     hostnames = json.load(f)["valid_servers"]
 
 def store_head_requests(connection):

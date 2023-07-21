@@ -25,19 +25,11 @@ class LB_Items(tk.Frame):
             # fill option
             self.list.pack(padx = 10, pady = 10,
 	             expand = tk.YES, fill = "both", side=tk.LEFT)
-
-
-                
+               
             # Attach listbox to vertical scrollbar
             self.yscrollbar.config(command = self.list.yview)
 
             self.set(values, bSelectAll)
-            #if bSelectAll:
-            if False:
-                for item in values:
-	       	        self.list.insert(tk.END, item)
-             #start with everthing selected
-                self.list.select_set(0, tk.END)
             
             self.pack(fill="both", expand=True, side=side)
     
