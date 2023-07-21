@@ -1,5 +1,6 @@
 import os
-import MySQLdb
+#import MySQLdb
+import mysql.connector
 
 # Created a testDB_read user:
 #       GRANT SELECT ON test.* TO '4P4Mongv3vUVSHz.testDB_reader'@'%';
@@ -20,17 +21,27 @@ def get_user_base():
 
 
 def get_connection():
-    return MySQLdb.connect(
-    host="gateway01.eu-central-1.prod.aws.tidbcloud.com",
-    port=4000,
-    user=f"{user_base}.testDB_reader",
-    password="#%6mQjE5A#kKGQ$b",
-    database="test",
-    ssl_mode="VERIFY_IDENTITY",
-    ssl={
-      "ca": ssl_cert_path
-      }
-    )
+    mysql_config = {
+        'user': f"{user_base}.testDB_reader",
+        'password': "#%6mQjE5A#kKGQ$b",
+        'host': 'gateway01.eu-central-1.prod.aws.tidbcloud.com',
+        'database': 'test',
+        'port': '4000',
+#        'ssl': {}
+    }
+    return mysql.connector.connect(**mysql_config )
+
+#    return MySQLdb.connect(
+#    host="gateway01.eu-central-1.prod.aws.tidbcloud.com",
+#    port=4000,
+#    user=f"{user_base}.testDB_reader",
+#    password="#%6mQjE5A#kKGQ$b",
+#    database="test",
+#    ssl_mode="VERIFY_IDENTITY",
+#    ssl={
+#      "ca": ssl_cert_path
+#      }
+#    )
 
 
 def execute_sql(connection, sql, params=None):
