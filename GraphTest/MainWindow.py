@@ -1,8 +1,8 @@
 # Import Library
 import tkinter as tk
 from tkinter import ttk
-from graphtest3 import *
-from evaluator import *
+from GraphTest.graphtest3 import *
+from GraphTest.evaluator import *
 
 class LB_Items(tk.Frame):
     def __init__(self, root, title, values, bSelectAll, side=tk.LEFT):
@@ -25,19 +25,11 @@ class LB_Items(tk.Frame):
             # fill option
             self.list.pack(padx = 10, pady = 10,
 	             expand = tk.YES, fill = "both", side=tk.LEFT)
-
-
-                
+               
             # Attach listbox to vertical scrollbar
             self.yscrollbar.config(command = self.list.yview)
 
             self.set(values, bSelectAll)
-            #if bSelectAll:
-            if False:
-                for item in values:
-	       	        self.list.insert(tk.END, item)
-             #start with everthing selected
-                self.list.select_set(0, tk.END)
             
             self.pack(fill="both", expand=True, side=side)
     

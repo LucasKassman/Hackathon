@@ -1,5 +1,4 @@
 import os
-#import MySQLdb
 import mysql.connector
 
 # Created a testDB_read user:
@@ -9,40 +8,35 @@ import mysql.connector
 #   SELECT * FROM mysql.user;
 
 
-current_dir = os.getcwd()
-parent_dir = os.path.dirname(current_dir)
-ssl_cert_path = os.path.join(parent_dir,'root_certs/cacert-2023-05-30.pem')
 user_base = "4P4Mongv3vUVSHz"
+root_password = "IimED29zRmjOxOPU"
 
 
+from pathlib import Path
+file_dir = Path(__file__).resolve().parent
+ssl_cert_path = file_dir / 'root_certs' / 'cacert-2023-05-30.pem'
+ssl_cert_pathname = str(ssl_cert_path.absolute())
 
 def get_user_base():
     return user_base
 
-
-def get_connection():
+def get_connection(user="root", password=root_password, ssl=True):
     mysql_config = {
-        'user': f"{user_base}.testDB_reader",
-        'password': "#%6mQjE5A#kKGQ$b",
+        'user': f"{user_base}.{user}",
+        'password': password,
         'host': 'gateway01.eu-central-1.prod.aws.tidbcloud.com',
         'database': 'test',
         'port': '4000',
-#        'ssl': {}
     }
-    return mysql.connector.connect(**mysql_config )
+    # Perhaps we should not require these SSL checks?
+    if ssl:
+        mysql_config['ssl_verify_cert'] = True
+        mysql_config['ssl_verify_identity'] = True
+        mysql_config['ssl_ca'] = ssl_cert_pathname
+    return mysql.connector.connect(**mysql_config)
 
-#    return MySQLdb.connect(
-#    host="gateway01.eu-central-1.prod.aws.tidbcloud.com",
-#    port=4000,
-#    user=f"{user_base}.testDB_reader",
-#    password="#%6mQjE5A#kKGQ$b",
-#    database="test",
-#    ssl_mode="VERIFY_IDENTITY",
-#    ssl={
-#      "ca": ssl_cert_path
-#      }
-#    )
-
+def get_read_only_connection():
+    return get_connection('testDB_reader', '#%6mQjE5A#kKGQ$b')
 
 def execute_sql(connection, sql, params=None):
     with connection.cursor() as cursor:
