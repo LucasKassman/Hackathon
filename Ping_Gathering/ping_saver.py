@@ -15,9 +15,12 @@ def store_head_requests(connection):
     times = []
 
     for hostname in hostnames:
-        response = requests.head(f"http://{hostname}")
-        latencies.append(response.elapsed.total_seconds())
         times.append(datetime.datetime.now())
+        try:
+            response = requests.head(f"http://{hostname}")
+            latencies.append(response.elapsed.total_seconds())
+        except Exception:
+            latencies.append(None)
 
     print(latencies)
     records = []
