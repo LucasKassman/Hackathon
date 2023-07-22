@@ -1,4 +1,4 @@
-from GraphTest.MainWindow import *
+from GraphDisplay.MainWindow import *
 
 if __name__ == '__main__':
     mw = MainWindow("Runescape Server Evaluation")
