@@ -73,6 +73,16 @@ def get_location_key(connection, ip_address):
         location_tuple,
     )[0][0]
 
+def get_my_location_key():
+    while True:
+        try:
+            my_ip = requests.get("http://ifconfig.me").text
+            location_key = get_location_key(connection, my_ip)
+            break
+        except Exception as e:
+            logging.exception("Failed to determine location! Trying again in 60s...")
+            time.sleep(60)
+    return location_key
 
 def measure_head_request(hostname):
     start_time = datetime.datetime.now()
@@ -130,21 +140,7 @@ def measure_latencies(measure_function, hostnames, extra_rows = []):
     logging.info(f"Finished running {measure_function.__name__} {len(hostnames)} times")
     return records
 
-def store_ping_and_head_latencies(connection):
-    while True:
-        try:
-            my_ip = requests.get("http://ifconfig.me").text
-            location_key = get_location_key(connection, my_ip)
-            break
-        except Exception as e:
-            logging.exception("Failed to determine location! Trying again in 60s...")
-            time.sleep(60)
-    latencies = []
-    times = []
-
-    records = measure_latencies(measure_head_request, hostnames, [1, location_key])
-    records += measure_latencies(measure_ping_request, hostnames, [0, location_key])
-
+def save_records(connection, records):
     with connection.cursor() as cursor:
         cursor.executemany("""
             INSERT INTO ping_data(
@@ -160,6 +156,15 @@ def store_ping_and_head_latencies(connection):
         )
     connection.commit()
     logging.info(f"saved {len(records)} ping measurements")
+
+def store_ping_and_head_latencies(connection):
+    location_key = get_my_location_key()
+
+    records = measure_latencies(measure_head_request, hostnames, [1, location_key])
+    records += measure_latencies(measure_ping_request, hostnames, [0, location_key])
+
+    save_records(connection, records)
+
 
 '''
 valid_servers = []
