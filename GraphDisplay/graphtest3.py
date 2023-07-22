@@ -15,8 +15,9 @@ class Grapher(tk.Frame):
         self.lfr = tk.LabelFrame(parent, text="Best Servers", padx=20, pady=20, font=titleFont)
         self.lfr.pack(pady=20, padx=10)
       
-        self.lfr.grid(row=1, column=0)
+        #self.lfr.grid(row=1, column=0)
         self.fig = plt.figure(figsize=(10, 8))
+
         self.ax = self.fig.add_subplot(111)
         self.server_checks = {}
         self.servers = {}
@@ -76,11 +77,14 @@ class Grapher(tk.Frame):
         if not server in self.servers:
             self.servers[server] = Grapher.server_data(self)
             self.servers[server].makePlot(server, ave, times, pings, self.bFirstItem)
+        
+        if self.bFirstItem:
+            self.canvas = FigureCanvasTkAgg(self.fig, master=self.parent)
+
         self.bFirstItem = False
 
-        self.canvas = FigureCanvasTkAgg(self.fig, master=self.parent)
         self.canvas.draw()
-        self.canvas.get_tk_widget().grid(row=2, column=0, ipadx=40, ipady=20)
+        self.canvas.get_tk_widget().pack(fill=tk.BOTH, expand=True)
         self.checkbutton_changed() # update the legend
 
     def checkbutton_changed(self):
