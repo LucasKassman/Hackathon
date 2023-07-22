@@ -15,7 +15,7 @@ def getLocation(ipAddr):
     json = response.json()
     return json
 
-def get_location_key(ip_address):
+def get_location_key(connection, ip_address):
     location = getLocation(ip_address)
     location_tuple = (
         ip_address,
@@ -68,7 +68,7 @@ def store_head_requests(connection):
     while True:
         try:
             my_ip = requests.get("http://ifconfig.me").text
-            location_key = get_location_key(my_ip)
+            location_key = get_location_key(connection, my_ip)
             break
         except Exception as e:
             logging.exception("Failed to determine location! Trying again in 60s...")
@@ -122,12 +122,12 @@ with open("servers.json", "w") as f:
     f.write(json.dumps({"valid_servers": valid_servers, "invalid_servers": invalid_servers}))
 exit(0)
 '''
-
-prev_end_time = time.time()
-with get_connection(user="ping_inserter", password="665404ebeb06") as connection:
-    while True:
-        store_head_requests(connection)
-        end_time = time.time()
-        elapsed = end_time - prev_end_time
-        prev_end_time = end_time
-        time.sleep(max(0, 60 - elapsed))
+if __name__ == "__main__":
+    prev_end_time = time.time()
+    with get_connection(user="ping_inserter", password="665404ebeb06") as connection:
+        while True:
+            store_head_requests(connection)
+            end_time = time.time()
+            elapsed = end_time - prev_end_time
+            prev_end_time = end_time
+            time.sleep(max(0, 60 - elapsed))
