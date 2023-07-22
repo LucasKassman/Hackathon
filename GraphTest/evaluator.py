@@ -47,21 +47,41 @@ def getServers2(cursor):
 # Evaluate all servers (TBD: for a given region)
 def evaluate(sl, region = None, hours=2):
     aves = {}
+    weighted_averages = {}
     server_data = {}
     with get_read_only_connection() as connection:
         with connection.cursor() as cursor:
-            starttime = getLastPingTime(cursor) - datetime.timedelta(hours=hours)
-            av, raw_data = getAveragePing(sl, starttime, cursor)
+            first_time = getLastPingTime(cursor)
+            starttime = first_time - datetime.timedelta(hours=hours)
+            av, raw_data, weighted_avgs,variances = getAveragePing(sl, starttime, cursor,first_time)
             lowest_avg = float('inf')
+            lowest_weighted_avg = float('inf')
+            lowest_variance = float('inf')
+
+
+
             for i in range(len(sl)):
                 server = sl[i]
+                weighted_averages[server] = weighted_avgs[i]
                 aves[server] = av[i]
                 server_data[server] = raw_data[i]
+
 
                 if av[i] < lowest_avg:
                     lowest_server = server
                     lowest_avg = av[i]
-                    print("found lower: ", lowest_server, lowest_avg)
+                    numbers_only = ''.join(filter(str.isdigit,lowest_server))
+                    print("found lower: ", numbers_only, "avg is: ", lowest_avg)
+                if weighted_avgs[i] < lowest_weighted_avg:
+                    lowest_weighted_server = server
+                    lowest_weighted_avg = weighted_avgs[i]
+                    numbers_only = ''.join(filter(str.isdigit, lowest_weighted_server))
+                    print("found lower weighted: ", numbers_only, "weighted avg is: ", lowest_weighted_avg)
+                if variances[i] < lowest_variance:
+                    lowest_variance_server = server
+                    lowest_variance = variances[i]
+                    numbers_only = ''.join(filter(str.isdigit, lowest_variance_server))
+                    print("found lower variance server: ", numbers_only, "variance is: ",lowest_variance)
 
 
     TOP_N = 5
@@ -70,15 +90,20 @@ def evaluate(sl, region = None, hours=2):
 
     # sort by the average pings (item [1]), smallest first
     sorted_aves = sorted(aves.items(), key=lambda x: x[1])
+    sorted_weighted_aves = sorted(weighted_averages.items(), key=lambda x: x[1])
     #print("aves", aves)
     #print("sorted_aves", sorted_aves)
 
     # get the top N from the list
     top_servers = sorted_aves[:TOP_N]
+    top_weighted_servers = sorted_weighted_aves[:TOP_N]
     print("top_servers: ", top_servers)
+    print("top_weighted_servers: ", top_weighted_servers)
     pprint.pprint(top_servers)
+    pprint.pprint(top_weighted_servers)
     # another example of list(zip()), strip off the averages and just get the server names
-    top_server_names = list(zip(*top_servers))[0]
+    #top_server_names = list(zip(*top_servers))[0]
+    top_server_names = list(zip(*top_weighted_servers))[0]
     
     #print("top_server_names: ", top_server_names)
     #print("raw_data for", top_server_names[0], server_data[top_server_names[0]])
@@ -92,7 +117,7 @@ def evaluate(sl, region = None, hours=2):
         #plot_data[s] = {"average":aves[s],"timestamps":list(zip(*server_data[s]))[0],"goodness":list(zip(*server_data[s]))[1]}
 
         plot_data[s] = {
-            "average": aves[s],
+            "average": weighted_averages[s],
             "timestamps": [row[0] for row in raw_data if row[2] == s],
             "goodness": [row[1] for row in raw_data if row[2] == s]
         }
