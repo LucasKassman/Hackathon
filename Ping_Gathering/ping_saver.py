@@ -1,8 +1,18 @@
-import time
+import concurrent.futures
 import datetime
-import logging
-import requests
 import json
+import logging
+import platform
+import re
+import requests
+import subprocess
+import time
+
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s [%(levelname)s] %(funcName)s(): %(message)s'
+)
+
 
 from connector import get_connection, execute_sql
 
@@ -63,8 +73,7 @@ def get_location_key(connection, ip_address):
         location_tuple,
     )[0][0]
 
-
-def store_head_requests(connection):
+def get_my_location_key():
     while True:
         try:
             my_ip = requests.get("http://ifconfig.me").text
@@ -73,24 +82,65 @@ def store_head_requests(connection):
         except Exception as e:
             logging.exception("Failed to determine location! Trying again in 60s...")
             time.sleep(60)
-    latencies = []
-    times = []
+    return location_key
 
-    for hostname in hostnames:
-        times.append(datetime.datetime.now())
+def measure_head_request(hostname):
+    start_time = datetime.datetime.now()
+    try:
+        latency = requests.head(f"http://{hostname}").elapsed.total_seconds()
+        latency_ns = round(latency * 1000000)
+    except Exception:
+        logging.exception("Failed to run HTTP HEAD request!")
+        latency_ns = None
+    return start_time, latency_ns
+
+def measure_ping_request(hostname):
+    param = "-n" if "windows" in platform.system().lower() else "-c"
+    start_time = datetime.datetime.now()
+    result = None
+    try:
+        result = str(subprocess.check_output(["ping", param, "1", hostname]))
+    except Exception:
+        logging.exception("Failed to run ICMP ping!")
+        latency_ns = None
+    else: # if no exception
         try:
-            response = requests.head(f"http://{hostname}")
-            latencies.append(response.elapsed.total_seconds())
+            m = re.search("time\s*=\s*([\d\.]+)\s*ms", result)
+            ping_ms_string = m.group(1)
         except Exception:
-            latencies.append(None)
+            logging.exception(f"Failed to parse {result}!")
+            latency_ns = None
+        else: # if no exception
+            try:
+                latency_ns = round(float(ping_ms_string)*1000)
+            except Exception:
+                logging.exception(f"Failed to parse ping time of {ping_ms_string}")
+                latency_ns = None
 
-    print(latencies)
+    return start_time, latency_ns
+
+
+def measure_latencies(measure_function, hostnames, extra_rows = []):
+    futures = []
+    start_times = []
+    latencies = []
+    with concurrent.futures.ThreadPoolExecutor(max_workers=4) as executor:
+        for hostname in hostnames:
+            futures.append(executor.submit(measure_function, hostname))
+        for future in futures:
+            start_time, latency = future.result()
+            start_times.append(start_time)
+            latencies.append(latency)
+
     records = []
-    for hostname, latency, times in zip(hostnames, latencies, times):
+    for hostname, latency, start_time in zip(hostnames, latencies, start_times):
         records.append(
-            (datetime.datetime.now(), int(latency*1000000), hostname, 1, location_key),
+            tuple([start_time, latency, hostname] + extra_rows)
         )
+    logging.info(f"Finished running {measure_function.__name__} {len(hostnames)} times")
+    return records
 
+def save_records(connection, records):
     with connection.cursor() as cursor:
         cursor.executemany("""
             INSERT INTO ping_data(
@@ -105,7 +155,16 @@ def store_head_requests(connection):
         """, records
         )
     connection.commit()
-    print(f"saved {len(hostnames)} head requests infos")
+    logging.info(f"saved {len(records)} ping measurements")
+
+def store_ping_and_head_latencies(connection):
+    location_key = get_my_location_key()
+
+    records = measure_latencies(measure_head_request, hostnames, [1, location_key])
+    records += measure_latencies(measure_ping_request, hostnames, [0, location_key])
+
+    save_records(connection, records)
+
 
 '''
 valid_servers = []
@@ -123,11 +182,14 @@ with open("servers.json", "w") as f:
 exit(0)
 '''
 if __name__ == "__main__":
+    logging.info("Starting up")
     prev_end_time = time.time()
     with get_connection(user="ping_inserter", password="665404ebeb06") as connection:
         while True:
-            store_head_requests(connection)
+            store_ping_and_head_latencies(connection)
             end_time = time.time()
             elapsed = end_time - prev_end_time
             prev_end_time = end_time
-            time.sleep(max(0, 60 - elapsed))
+            sleep_time = max(0, 60 - elapsed)
+            logging.info(f"Waiting {sleep_time:.2f} seconds until next round of pings...")
+            time.sleep(sleep_time)
