@@ -1,7 +1,8 @@
 # Import Library
 import tkinter as tk
 from tkinter import ttk
-from GraphDisplay.graphtest3 import *
+#import GraphDisplay.graphtest2 as gr2
+from GraphDisplay.graphtest2 import *
 from Data_Handling.evaluator import *
 
 class LB_Items(tk.Frame):
@@ -116,10 +117,12 @@ class MainWindow(tk.Tk):
 
     def measure_servers(self,sl,hours):        
         if len(sl) > 0:
-            w = ChildWindow(sl,hours)
-            w.title("Server Evaluation")
-            w.geometry("1100x1000")
+            n = len(self.subWindows)+1
+            w = ChildWindow(sl,hours, title=f'Server Evaluation #{n}')
+#            w.title("Server Evaluation")
+#            w.geometry("1100x1000")
             self.subWindows.append(w)
+            w.Draw()
         else:
             print("no servers selected!!!")
 
@@ -148,15 +151,19 @@ class MainWindow(tk.Tk):
 #
 # Window containing the plot data
 # This is a subclass of Toplevel which allows us to create indepent windows.
-class ChildWindow(tk.Toplevel):
-    def __init__(self, sl, hours):
+#class ChildWindow(tk.Toplevel):
+class ChildWindow():
+    def __init__(self, sl, hours, title):
         super().__init__()
         print("in ChildWindow __init__")
-        self.g = Grapher(self)  # create a Grapher object with this Toplevel as the base
+        self.g = Grapher(title)  # create a Grapher object
         #sl = getServers() # get the list of servers
         plot_data = evaluate(sl, hours) # evaluate them
         for server in plot_data: # add the data to the graph
             self.g.addData(server, plot_data[server]['average'], plot_data[server]['timestamps'],plot_data[server]['goodness'])
+    
+    def Draw(self):
+        self.g.Draw()
 
 
 if __name__ == '__main__':

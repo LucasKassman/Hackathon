@@ -1,7 +1,6 @@
 import pprint
 import datetime
 from Data_Handling.Average import *
-from GraphDisplay.graphtest3 import *
 
 #
 # return a list of servers to probe.

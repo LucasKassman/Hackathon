@@ -1,18 +1,20 @@
 import tkinter as tk
-from tkinter import messagebox
+#from tkinter import messagebox
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 
-class Grapher(tk.Frame):
+from GraphDisplay.RangeSlider import RangeSliderV
 
-    def __init__(self, parent, *args, **kwargs):
-        tk.Frame.__init__(self, parent, *args, **kwargs)
+#class Grapher(tk.Frame):
+class Grapher(tk.Toplevel):
+
+    def __init__(self,title="Grapher"):
+        super().__init__()
+        self.title(title)
+        self.rootFrame = tk.Frame(self)
+        #tk.Frame.__init__(self, parent, *args, **kwargs)
         titleFont = tk.font.Font(family='Helvetica', size=12, weight='bold')
-        self.parent = parent
-        #self.btn = tk.Label(parent, text='Best Servers', font=titleFont)
-        #self.btn = tk.Label(parent)
-        #self.btn.grid(row=0, column=0, padx=20, pady=10)
-        self.lfr = tk.LabelFrame(parent, text="Best Servers", padx=20, pady=20, font=titleFont)
+        self.lfr = tk.LabelFrame(self, text="Best Servers", padx=20, pady=20, font=titleFont)
         self.lfr.pack(pady=20, padx=10)
       
         #self.lfr.grid(row=1, column=0)
@@ -22,8 +24,7 @@ class Grapher(tk.Frame):
         self.server_checks = {}
         self.servers = {}
         self.bFirstItem = True
-        #self.lfr.pack_forget()
-        #self.lfr.grid_forget()
+
     #
     # internal class to hold data for and perform functions for individual servers
     class server_data():
@@ -54,6 +55,8 @@ class Grapher(tk.Frame):
             #
             # Create a plot of the data      
             self.plot=self.parent.ax.plot(times, pings, label=server)[0]
+
+            print("ylims:", self.parent.ax.get_ylim())
         
             #
             # Optionally create the horizontal line
@@ -72,6 +75,12 @@ class Grapher(tk.Frame):
             if self.hline != None:
                 self.hline.set_visible(self.var.get())
 
+    def pingChangedCB(self):
+        print("pingChangedCB", self.pingRangeVars[0].get(), self.pingRangeVars[1].get())
+        plt.ylim([15,25])
+        self.ax.set_ylim([15,25])
+        #plt.ylim([self.pingRangeVars[0].get(), self.pingRangeVars[1].get()])
+
     def addData(self, server, ave, times, pings):
         
         if not server in self.servers:
@@ -79,7 +88,26 @@ class Grapher(tk.Frame):
             self.servers[server].makePlot(server, ave, times, pings, self.bFirstItem)
         
         if self.bFirstItem:
-            self.canvas = FigureCanvasTkAgg(self.fig, master=self.parent)
+            self.canvas = FigureCanvasTkAgg(self.fig, master=self)
+            self.pingRangeLimits = [min(pings), max(pings)]
+            self.pingRangeVars = [tk.DoubleVar(value = self.pingRangeLimits[0]), tk.DoubleVar(value = self.pingRangeLimits[1])]
+            #self.pingRangeWidget = RangeSliderV( root, self.pingRangeVars, padY = 12, min_val=self.pingRangeLimits[0], max_val=self.pingRangeLimits[1],ValueChangeCB=vChangeCB)    #vertical slider
+            
+            # experimenting with a two value slider
+            if False:
+                self.pingRangeWidget = RangeSliderV(
+                    self,
+                    self.pingRangeVars,
+                    padY = 12,
+                    min_val=self.pingRangeLimits[0],
+                    Width=150,
+                    max_val=self.pingRangeLimits[1],
+                    font_family="Helvitica",
+                    font_size=10,
+                    ValueChangeCB=self.pingChangedCB
+                    ).pack(side=tk.LEFT)    #vertical slider
+
+
 
         self.bFirstItem = False
 
@@ -102,19 +130,21 @@ class Grapher(tk.Frame):
 
         self.ax.figure.canvas.draw()
 
+    def Draw(self):
+        print("nothing to do here, already drawn")
 # for test purposes, get stand-alone Grapher object
 #  -- i.e. clients don't need to know about tk...
 def getGrapher():
-    return Grapher(tk.Tk())
+    return Grapher()
 
 # for test purpose, call root's main event loop to process events while window is presented
 def waitGrapher(g):
     def on_closing():
         print("bye...")
-        g.parent.destroy()
-        g.parent.quit()
-    g.parent.protocol("WM_DELETE_WINDOW", on_closing)
-    g.parent.mainloop()
+        g.destroy()
+        g.quit()
+    g.protocol("WM_DELETE_WINDOW", on_closing)
+    g.mainloop()
 
 
 if __name__ == '__main__':
