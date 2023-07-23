@@ -4,9 +4,10 @@ from connector import *
 
 def getData(servernums, starttime, cursor):
     server_list = "', '".join(servernums)
-    query = "SELECT * FROM test.ping_data WHERE server_hostname IN ('{}') AND ping_time >= %s".format(server_list)
+    query = "SELECT * FROM test.ping_data WHERE server_hostname IN ('{}') AND ping_time >= %s AND ping_type = 0".format(server_list)
     cursor.execute(query, (starttime,))
     results = cursor.fetchall()
+
     # Retrieve column names from the cursor description
     column_names = [desc[0] for desc in cursor.description]
 
@@ -50,7 +51,7 @@ def getAveragePing(servernums, since, cursor,first_time):
         for row in server_data:
 
             value,incremental_weight = calculateWeight(row, first_time)
-            if value != None and row['ping_type'] == 0:
+            if value != None:
 
                 weighted = value * incremental_weight
                 totalWeighted += weighted
@@ -74,7 +75,7 @@ def getAveragePing(servernums, since, cursor,first_time):
         total_variance = 0
         for row in server_data:
             value, incremental_weight = calculateWeight(row, first_time)
-            if value != None and row['ping_type'] == 0:
+            if value != None:
                 weighted_sq_deviation = incremental_weight * (value - weightedAverage) ** 2
                 total_variance += weighted_sq_deviation
 
