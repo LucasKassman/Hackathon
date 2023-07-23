@@ -16,7 +16,7 @@ logging.basicConfig(
 
 from connector import get_connection, execute_sql
 
-with open("Ping_Gathering/servers.json") as f:
+with open("servers.json") as f:
     hostnames = json.load(f)["valid_servers"]
 
 def getLocation(ipAddr):
@@ -85,7 +85,7 @@ def get_my_location_key():
     return location_key
 
 def measure_head_request(hostname):
-    start_time = datetime.datetime.now()
+    start_time = datetime.datetime.utcnow()
     try:
         latency = requests.head(f"http://{hostname}").elapsed.total_seconds()
         latency_ns = round(latency * 1000000)
@@ -96,7 +96,7 @@ def measure_head_request(hostname):
 
 def measure_ping_request(hostname):
     param = "-n" if "windows" in platform.system().lower() else "-c"
-    start_time = datetime.datetime.now()
+    start_time = datetime.datetime.utcnow()
     result = None
     try:
         result = str(subprocess.check_output(["ping", param, "1", hostname]))

@@ -4,7 +4,7 @@ from connector import *
 
 def getData(servernums, starttime, cursor):
     server_list = "', '".join(servernums)
-    query = "SELECT * FROM test.ping_data WHERE server_hostname IN ('{}') AND ping_time >= %s AND ping_type = 0".format(server_list)
+    query = "SELECT * FROM test.ping_data WHERE server_hostname IN ('{}') AND ping_time >= %s AND ping_type = 0 AND location_key = 7".format(server_list)
     cursor.execute(query, (starttime,))
     results = cursor.fetchall()
 
