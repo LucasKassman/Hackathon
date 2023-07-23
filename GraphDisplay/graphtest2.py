@@ -12,14 +12,33 @@ colors_list = ['red','green','blue','purple','black',
                    'tab:blue', 'tab:orange', 'tab:green', 'tab:red', 'tab:purple', 'tab:brown', 'tab:pink', 'tab:gray', 'tab:olive', 'tab:cyan'
                 ]
 
-
 class Server():
-    def __init__(self, label, plot, bActivated, color=None):
-        super().__init__()
+    def __init__(self, ax, label, ave, times, pings, color=None, bFirst=True, bPlotHLine=True):
+        if color == None:
+            p, = ax.plot(times,pings)
+            color = p.get_color()
+        else:
+            p, = ax.plot(times,pings,color)
+        p.set_visible(bFirst)
+            
+        #
+        # Optionally create the horizontal line
+        if bPlotHLine:
+            hline = ax.hlines(ave, xmin=min(times), xmax=max(times),colors=[color])
+            hline.set_visible(bFirst)
+        else:
+            hline = None
+
         self.label = label
-        self.plot  = plot
-        self.bActivated = bActivated
+        self.plot  = p
+        self.bActivated = bFirst
         self.color = color
+        self.hline = hline
+        self.ylimits = [min(pings), max(pings)]
+
+        #temp for debug
+        self.pings=pings
+        self.times=times
 
 class Grapher():
     def __init__(self, title):
@@ -28,9 +47,6 @@ class Grapher():
         self.fig = plt.figure(title, figsize=(12,10))
         self.ax = self.fig.subplots()
         self.bFirstItem = True
-        self.labels  = []
-        self.activated = []
-        self.plots = {}
         self.servers = {}
         #plt.subplots_adjust(right = 0.7, top = 0.75)
         plt.subplots_adjust(top = 0.84)
@@ -41,26 +57,33 @@ class Grapher():
         server = server_name+(" (%.2f)"%ave) # append the average to the displayed name
 
         if not server in self.servers:
-            if color == None:
-                p, = self.ax.plot(times,pings)
-                color = p.get_color()
-            else:
-                p, = self.ax.plot(times,pings,color)
-            p.set_visible(self.bFirstItem)
-
-            self.labels.append(server)
-            self.plots[server] = p
-            self.activated.append(self.bFirstItem)
-            self.servers[server] = Server(label=server, plot=p, bActivated=self.bFirstItem, color=color)
-            
+            self.servers[server] = Server(label=server, ax=self.ax, ave=ave, times=times, pings=pings, color=color, bFirst=self.bFirstItem)
 
         self.bFirstItem = False
+
+    # fudge  = % of max y axis limits to increase +/-
+    def setYLimits(self, fudge=0.02):
+        # set the y axis based on min/max Y for visible servers
+        miny = float('inf')
+        maxy = 0
+
+        for s in self.servers:
+            if self.servers[s].plot.get_visible():
+                ylims = self.servers[s].ylimits
+                miny = min([miny, ylims[0]])
+                maxy = max([maxy, ylims[1]])
+        self.ax.set_ylim(miny*(1.0-fudge), maxy*(1+fudge))
 
     # handle plot_button clicks by toggling the visibility of the specific server
     def select_plot(self,label):
         print(label)
         if label in self.servers:
-            self.servers[label].plot.set_visible(not self.servers[label].plot.get_visible())
+            bVisible = not self.servers[label].plot.get_visible();
+            self.servers[label].plot.set_visible(bVisible)
+            if self.servers[label].hline != None:
+                self.servers[label].hline.set_visible(bVisible)
+        
+        self.setYLimits()
         self.fig.canvas.draw()
 
 
@@ -97,7 +120,8 @@ class Grapher():
         self.plot_button.on_clicked(self.select_plot)
         print("set up on_clicked!")
         
-        #plt.legend(handles, labels)
+        self.setYLimits()
+       #plt.legend(handles, labels)
         plt.show()
 
 # plot the dictionary of servers along with timestamps and measurements
