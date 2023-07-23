@@ -7,14 +7,17 @@ from matplotlib.widgets import Button, RadioButtons, CheckButtons
 
 #import tkinter as tk
 
-
+current_color = 0
 colors_list = ['red','green','blue','purple','black',
                    'tab:blue', 'tab:orange', 'tab:green', 'tab:red', 'tab:purple', 'tab:brown', 'tab:pink', 'tab:gray', 'tab:olive', 'tab:cyan'
                 ]
 
 class Server():
     def __init__(self, ax, label, ave, times, pings, color=None, bFirst=True, bPlotHLine=True):
+        global current_color
         if color == None:
+            color = colors_list[current_color]
+            current_color = (current_color+1) % (len(colors_list))
             p, = ax.plot(times,pings)
             color = p.get_color()
         else:
