@@ -48,12 +48,15 @@ def getAveragePing(servernums, since, cursor,first_time):
         total_weight = 0
 
         for row in server_data:
+
             value,incremental_weight = calculateWeight(row, first_time)
-            weighted = value * incremental_weight
-            totalWeighted += weighted
-            total_weight += incremental_weight
-            total += value
-            count += 1
+            if value != None and row['ping_type'] == 0:
+
+                weighted = value * incremental_weight
+                totalWeighted += weighted
+                total_weight += incremental_weight
+                total += value
+                count += 1
 
         if count > 0:
             average = total / count
@@ -71,8 +74,9 @@ def getAveragePing(servernums, since, cursor,first_time):
         total_variance = 0
         for row in server_data:
             value, incremental_weight = calculateWeight(row, first_time)
-            weighted_sq_deviation = incremental_weight * (value - weightedAverage) ** 2
-            total_variance += weighted_sq_deviation
+            if value != None and row['ping_type'] == 0:
+                weighted_sq_deviation = incremental_weight * (value - weightedAverage) ** 2
+                total_variance += weighted_sq_deviation
 
         variances.append(total_variance / total_weight)
     return averages, passedResults, weightedAverages, variances
