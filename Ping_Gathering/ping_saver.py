@@ -1,3 +1,4 @@
+import cachetools.func
 import concurrent.futures
 import datetime
 import json
@@ -16,7 +17,7 @@ logging.basicConfig(
 
 from connector import get_connection, execute_sql
 
-with open("servers.json") as f:
+with open("Ping_Gathering/servers.json") as f:
     hostnames = json.load(f)["valid_servers"]
 
 def getLocation(ipAddr):
@@ -25,6 +26,7 @@ def getLocation(ipAddr):
     json = response.json()
     return json
 
+@cachetools.func.ttl_cache(maxsize=64, ttl=3600)
 def get_location_key(connection, ip_address):
     location = getLocation(ip_address)
     location_tuple = (
