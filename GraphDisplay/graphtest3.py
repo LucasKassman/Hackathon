@@ -24,13 +24,37 @@ class Grapher(tk.Toplevel):
         self.server_checks = {}
         self.servers = {}
         self.bFirstItem = True
+        self.yminmax = (float('inf'), 0.0)
+    
+    # the y axis will always have a minimum of at least limits[0], and a maximum of limits[1]
+    def setYminmax(self, limits):
+        self.yminmax = limits
+        
+    # fudge  = % of max y axis limits to increase +/-
+    def setYLimits(self, fudge=0.02):
+        # set the y axis based on min/max Y for visible servers
+        miny = float('inf')
+        maxy = 0
+
+        for s in self.servers:
+            if self.servers[s].plot.get_visible():
+                ylims = self.servers[s].ylimits
+                miny = min([miny, ylims[0], self.yminmax[0]])
+                maxy = max([maxy, ylims[1], self.yminmax[1]]) 
+
+
+        if (miny != float('inf')):
+            self.ax.set_ylim(miny*(1.0-fudge), maxy*(1.0+fudge))
+            plt.draw()
 
     #
     # internal class to hold data for and perform functions for individual servers
     class server_data():
         def __init__(self, parent):
             self.parent = parent # cheat way to access all the Grapher class' data
-   
+        
+            self.ylimits = [float('inf'), 0]  
+        
         #
         # Plot the data and the horizontal line
         #   o  Creates a checkbox selector
@@ -40,7 +64,6 @@ class Grapher(tk.Toplevel):
             
             #
             # Create a checkbutton
-
             stext = server+(" (%.2f)"%ave) # append the average to the displayed name
             buttonFont = tk.font.Font(family='Helvetica', size=12, weight='bold')  # make the font larger and bold instead of default
             self.var = tk.IntVar() # variable to track the selected state
@@ -52,6 +75,8 @@ class Grapher(tk.Toplevel):
             else:
                 self.check.deselect()
        
+            self.ylimits = [min(pings), max(pings)]  
+
             #
             # Create a plot of the data      
             self.plot=self.parent.ax.plot(times, pings, label=server)[0]
@@ -111,6 +136,8 @@ class Grapher(tk.Toplevel):
 
         self.bFirstItem = False
 
+        self.setYLimits()
+
         self.canvas.draw()
         self.canvas.get_tk_widget().pack(fill=tk.BOTH, expand=True)
         self.checkbutton_changed() # update the legend
@@ -128,6 +155,7 @@ class Grapher(tk.Toplevel):
         
         plt.legend(handles, labels)
 
+        self.setYLimits()
         self.ax.figure.canvas.draw()
 
     def Draw(self):
