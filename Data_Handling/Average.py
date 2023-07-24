@@ -4,7 +4,9 @@ from connector import *
 
 def getData(servernums, starttime, cursor):
     server_list = "', '".join(servernums)
-    query = "SELECT * FROM test.ping_data WHERE server_hostname IN ('{}') AND ping_time >= %s AND ping_type = 0".format(server_list)
+    #query = "SELECT * FROM test.ping_data WHERE server_hostname IN ('{}') AND ping_time >= %s AND ping_type = 0".format(server_list)
+    query = "SELECT * FROM test.ping_data WHERE server_hostname IN ('{}') AND ping_time >= %s AND ping_type = 0 AND location_key = 7".format(
+        server_list)
     cursor.execute(query, (starttime,))
     results = cursor.fetchall()
 
@@ -12,6 +14,9 @@ def getData(servernums, starttime, cursor):
     column_names = [desc[0] for desc in cursor.description]
 
     data = [dict(zip(column_names, row)) for row in results]
+    for row in data:
+        if row['ping_latency_ns'] != None:
+            row['ping_latency_ns'] = row['ping_latency_ns'] / 1000
     return data,results
 
 
@@ -32,6 +37,15 @@ def calculateWeight(row,reference_time):
     weight = exponential_decay(seconds_apart, .0001)
     return value,weight
 
+def trim_data(data):
+    for row in data:
+        row_list = list(row)
+        if (row_list[1] != None):
+
+            row_list[1] = row_list[1] / 1000
+        updated_row = tuple(row_list)
+        row = updated_row
+
 
 def getAveragePing(servernums, since, cursor,first_time):
     averages = []
@@ -40,7 +54,7 @@ def getAveragePing(servernums, since, cursor,first_time):
     variances = []
 
     data,passedResults = getData(servernums, since, cursor)
-
+    #trim_data(passedResults)
     for server in servernums:
         server_data = [row for row in data if row['server_hostname'] == server]
         total = 0
@@ -80,6 +94,6 @@ def getAveragePing(servernums, since, cursor,first_time):
                 total_variance += weighted_sq_deviation
 
         variances.append(total_variance / total_weight)
-    return averages, passedResults, weightedAverages, variances
+    return averages, data, weightedAverages, variances
 
 

@@ -1,6 +1,8 @@
 import pprint
 import datetime
 from Data_Handling.Average import *
+from Data_Handling.locationGrabber import *
+from Data_Handling.location import *
 
 #
 # return a list of servers to probe.
@@ -46,6 +48,8 @@ def getServers2(cursor):
 #
 # Evaluate all servers (TBD: for a given region)
 def evaluate(sl, region = None, hours=2):
+    ip = get_my_ip()
+
     aves = {}
     weighted_averages = {}
     server_data = {}
@@ -118,8 +122,8 @@ def evaluate(sl, region = None, hours=2):
 
         plot_data[s] = {
             "average": weighted_averages[s],
-            "timestamps": [row[0] for row in raw_data if row[2] == s],
-            "goodness": [row[1] for row in raw_data if row[2] == s]
+            "timestamps": [row['ping_time'] for row in raw_data if row['server_hostname'] == s],
+            "goodness": [row['ping_latency_ns'] for row in raw_data if row['server_hostname'] == s]
         }
         #plot_data[s] = {"timestamps":list(zip(*server_data[s]))[0],"goodness":list(zip(*server_data[s]))[1]}
 
