@@ -8,45 +8,6 @@ from GraphDisplay.RangeSlider import RangeSliderV
 #class Grapher(tk.Frame):
 class Grapher(tk.Toplevel):
 
-    def __init__(self,title="Grapher"):
-        super().__init__()
-        self.title(title)
-        self.rootFrame = tk.Frame(self)
-        #tk.Frame.__init__(self, parent, *args, **kwargs)
-        titleFont = tk.font.Font(family='Helvetica', size=12, weight='bold')
-        self.lfr = tk.LabelFrame(self, text="Best Servers", padx=20, pady=20, font=titleFont)
-        self.lfr.pack(pady=20, padx=10)
-      
-        #self.lfr.grid(row=1, column=0)
-        self.fig = plt.figure(figsize=(10, 8))
-
-        self.ax = self.fig.add_subplot(111)
-        self.server_checks = {}
-        self.servers = {}
-        self.bFirstItem = True
-        self.yminmax = (float('inf'), 0.0)
-    
-    # the y axis will always have a minimum of at least limits[0], and a maximum of limits[1]
-    def setYminmax(self, limits):
-        self.yminmax = limits
-        
-    # fudge  = % of max y axis limits to increase +/-
-    def setYLimits(self, fudge=0.02):
-        # set the y axis based on min/max Y for visible servers
-        miny = float('inf')
-        maxy = 0
-
-        for s in self.servers:
-            if self.servers[s].plot.get_visible():
-                ylims = self.servers[s].ylimits
-                miny = min([miny, ylims[0], self.yminmax[0]])
-                maxy = max([maxy, ylims[1], self.yminmax[1]]) 
-
-
-        if (miny != float('inf')):
-            self.ax.set_ylim(miny*(1.0-fudge), maxy*(1.0+fudge))
-            plt.draw()
-
     #
     # internal class to hold data for and perform functions for individual servers
     class server_data():
@@ -81,8 +42,6 @@ class Grapher(tk.Toplevel):
             # Create a plot of the data      
             self.plot=self.parent.ax.plot(times, pings, label=server)[0]
 
-            print("ylims:", self.parent.ax.get_ylim())
-        
             #
             # Optionally create the horizontal line
             if bPlotHLine:
@@ -100,11 +59,88 @@ class Grapher(tk.Toplevel):
             if self.hline != None:
                 self.hline.set_visible(self.var.get())
 
+    def __init__(self,title="Grapher"):
+        super().__init__()
+        self.title(title)
+        self.rootFrame = tk.Frame(self)
+        #tk.Frame.__init__(self, parent, *args, **kwargs)
+        titleFont = tk.font.Font(family='Helvetica', size=12, weight='bold')
+        self.lfr = tk.LabelFrame(self, text="Best Servers", padx=20, pady=20, font=titleFont)
+        self.lfr.pack(pady=20, padx=10)
+      
+        #self.lfr.grid(row=1, column=0)
+        self.fig = plt.figure(figsize=(10, 8))
+
+        self.ax = self.fig.add_subplot(111)
+        self.server_checks = {}
+        self.servers = {}
+        self.bFirstItem = True
+        self.yminmax = (float('inf'), 0.0)
+        # experimenting with a two value slider
+        if True:
+                self.pingRangeLimits = [0, 1]
+                self.pingRangeVars = [tk.DoubleVar(value = 0), tk.DoubleVar(value = 1)]
+                self.pingRangeWidget = RangeSliderV(
+                    self,
+                    self.pingRangeVars,
+                    padY = 12,
+                    min_val=self.pingRangeLimits[0],
+                    Width=150,
+                    max_val=self.pingRangeLimits[1],
+                    font_family="Helvitica",
+                    font_size=10,
+                    ValueChangeCB=self.pingChangedCB
+                    )
+                self.pingRangeWidget.pack(side=tk.LEFT)    #vertical slider
+                print("in __init__:  pingRangeWidget",type(self.pingRangeWidget))
+    
+    # the y axis will always have a minimum of at least limits[0], and a maximum of limits[1]
+    def setYminmax(self, limits):
+        self.yminmax = limits
+
+    def getPingMinMax(self):
+        miny = float('inf')
+        maxy = 0
+
+        for s in self.servers:
+            if self.servers[s].plot.get_visible():
+                ylims = self.servers[s].ylimits
+                miny = min([miny, ylims[0], self.yminmax[0]])
+                maxy = max([maxy, ylims[1], self.yminmax[1]])
+        return [miny, maxy]
+
+    def getPingAxisMinMax(self, fudge=0.02):
+        mm = self.getPingMinMax()
+
+        if (mm[0] != float('inf')):
+            mm[0] = mm[0]*(1.0-fudge)
+            mm[1] = mm[1]*(1.0+fudge)
+        return mm
+
+
+    # fudge  = % of max y axis limits to increase +/-
+    def setYLimits(self, fudge=0.02):
+ 
+        mm = self.getPingAxisMinMax()
+
+        if (mm[0] != float('inf')):
+            self.ax.set_ylim(mm[0], mm[1])
+            self.pingRangeWidget.max_val=mm[1]
+            self.pingRangeWidget.min_val=mm[0]
+
+            self.pingRangeVars[0].set(mm[0])
+            self.pingRangeVars[1].set(mm[1])
+
+            self.pingRangeWidget.forceValues(
+                    [ self.pingRangeVars[0].get(),
+                    self.pingRangeVars[1].get()])  # force update of slider
+            plt.draw()
+
+ 
+    # Adjust the Y axis based on the current slider settings
     def pingChangedCB(self):
-        print("pingChangedCB", self.pingRangeVars[0].get(), self.pingRangeVars[1].get())
-        plt.ylim([15,25])
-        self.ax.set_ylim([15,25])
-        #plt.ylim([self.pingRangeVars[0].get(), self.pingRangeVars[1].get()])
+        self.ax.set_ylim([self.pingRangeVars[0].get(), self.pingRangeVars[1].get()])
+        plt.draw()
 
     def addData(self, server, ave, times, pings):
         
@@ -114,9 +150,8 @@ class Grapher(tk.Toplevel):
         
         if self.bFirstItem:
             self.canvas = FigureCanvasTkAgg(self.fig, master=self)
-            self.pingRangeLimits = [min(pings), max(pings)]
-            self.pingRangeVars = [tk.DoubleVar(value = self.pingRangeLimits[0]), tk.DoubleVar(value = self.pingRangeLimits[1])]
-            #self.pingRangeWidget = RangeSliderV( root, self.pingRangeVars, padY = 12, min_val=self.pingRangeLimits[0], max_val=self.pingRangeLimits[1],ValueChangeCB=vChangeCB)    #vertical slider
+            #self.pingRangeLimits = [min(pings), max(pings)]
+            #self.pingRangeVars = [tk.DoubleVar(value = self.pingRangeLimits[0]), tk.DoubleVar(value = self.pingRangeLimits[1])]
             
             # experimenting with a two value slider
             if False:
@@ -130,8 +165,9 @@ class Grapher(tk.Toplevel):
                     font_family="Helvitica",
                     font_size=10,
                     ValueChangeCB=self.pingChangedCB
-                    ).pack(side=tk.LEFT)    #vertical slider
-
+                    )
+                self.pingRangeWidget.pack(side=tk.LEFT)    #vertical slider
+                print("-----------------", type(self.pingRangeWidget))
 
 
         self.bFirstItem = False
