@@ -127,7 +127,7 @@ def evaluate(sl, region = None, hours=2):
     for s in top_server_names:
 
         #plot_data[s] = {"average":aves[s],"timestamps":list(zip(*server_data[s]))[0],"goodness":list(zip(*server_data[s]))[1]}
-        print(raw_data)
+        #print(raw_data)
         plot_data[s] = {
             "average": weighted_averages[s],
             "timestamps": [row['ping_time'] for row in raw_data if row['server_hostname'] == s],

@@ -146,7 +146,7 @@ def getAveragePing(servernums, since, cursor,first_time,location,location_data):
                 total_variance += weighted_sq_deviation
 
         variances.append(total_variance / total_weight)
-    print("display data: ", display_data)
+    #print("display data: ", display_data)
     return averages, display_data, weightedAverages, variances
 
 
