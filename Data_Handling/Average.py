@@ -80,7 +80,8 @@ def getAveragePing(servernums, since, cursor,first_time,location,location_data):
 
     data= getData(servernums, since, cursor)
     #trim_data(passedResults)
-    time_block_begin = first_time
+    time_block_begin = since
+    print("first time variable:", since)
     current_running_data = {
         'ping_latency_ns': 0,
         'ping_time': time_block_begin,
@@ -113,7 +114,8 @@ def getAveragePing(servernums, since, cursor,first_time,location,location_data):
 
                 time_diff = abs(time_block_current - time_block_begin).total_seconds()
                 #print("time delta: ", time_diff)
-                if time_diff > 180:
+                #if time_diff > 180:
+                if time_diff > 360:
                     current_running_data['ping_latency_ns'] = current_running_data['ping_latency_ns'] / current_running_data['total_weight']
                     display_data.append(current_running_data)
                     time_block_begin = time_block_current
@@ -146,7 +148,8 @@ def getAveragePing(servernums, since, cursor,first_time,location,location_data):
                 total_variance += weighted_sq_deviation
 
         variances.append(total_variance / total_weight)
-    #print("display data: ", display_data)
+    print("display data: ", display_data)
+    #display_data.reverse()
     return averages, display_data, weightedAverages, variances
 
 
