@@ -57,7 +57,7 @@ class MainWindow(tk.Tk):
     # constructor
     def __init__(self, title="MainWindow()"):
         super().__init__()
-        print("in MainWindow  __init__")
+        #print("in MainWindow  __init__")
         self.title(title)
         self.geometry("600x400")
         self.subWindows=[] # a list of all the child windows we have
@@ -155,9 +155,9 @@ class MainWindow(tk.Tk):
 class ChildWindow():
     def __init__(self, sl, hours, title):
         super().__init__()
-        print("in ChildWindow __init__")
+        #print("in ChildWindow __init__")
         self.g = Grapher(title)  # create a Grapher object
-        #sl = getServers() # get the list of servers
+        self.g.setYminmax([0,120000])
         plot_data = evaluate(sl, hours) # evaluate them
         for server in plot_data: # add the data to the graph
             self.g.addData(server, plot_data[server]['average'], plot_data[server]['timestamps'],plot_data[server]['goodness'])

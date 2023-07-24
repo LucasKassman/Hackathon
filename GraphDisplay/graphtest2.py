@@ -42,7 +42,7 @@ class Server():
         #temp for debug
         self.pings=pings
         self.times=times
-
+        
 class Grapher():
     def __init__(self, title):
         super().__init__()
@@ -53,11 +53,33 @@ class Grapher():
         self.servers = {}
         #plt.subplots_adjust(right = 0.7, top = 0.75)
         plt.subplots_adjust(top = 0.84)
+        self.yminmax = (float('inf'), 0.0)
+
+    # the y axis will always have a minimum of at least limits[0], and a maximum of limits[1]
+    def setYminmax(self, limits):
+        self.yminmax = limits
+
+
+
+    def cleanData(self, times, pings):
+        
+        newtimes = []
+        newpings = []
+        j=0
+        for p in pings:
+            if p != None:
+                newtimes.append(times[j])
+                newpings.append(p)
+            j = j+1
+                
+        return newtimes, newpings
 
 
 
     def addData(self, server_name, ave, times, pings, color=None):
         server = server_name+(" (%.2f)"%ave) # append the average to the displayed name
+
+        times, pings = self.cleanData(times, pings)
 
         if not server in self.servers:
             self.servers[server] = Server(label=server, ax=self.ax, ave=ave, times=times, pings=pings, color=color, bFirst=self.bFirstItem)
@@ -73,9 +95,13 @@ class Grapher():
         for s in self.servers:
             if self.servers[s].plot.get_visible():
                 ylims = self.servers[s].ylimits
-                miny = min([miny, ylims[0]])
-                maxy = max([maxy, ylims[1]])
-        self.ax.set_ylim(miny*(1.0-fudge), maxy*(1+fudge))
+                miny = min([miny, ylims[0], self.yminmax[0]])
+                maxy = max([maxy, ylims[1], self.yminmax[1]]) 
+
+
+        if (miny != float('inf')):
+            self.ax.set_ylim(miny*(1.0-fudge), maxy*(1.0+fudge))
+            plt.draw()
 
     # handle plot_button clicks by toggling the visibility of the specific server
     def select_plot(self,label):
