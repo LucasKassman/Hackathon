@@ -20,6 +20,19 @@ from connector import get_connection, execute_sql
 with open("Ping_Gathering/servers.json") as f:
     hostnames = json.load(f)["valid_servers"]
 
+# East/west seems to be jagex only config at-the-moment
+# giving up for now, we could hardcode
+# thought: store server IP
+
+# server location
+# https://github.com/runelite/api.runelite.net/blob/master/http-api/src/main/java/net/runelite/http/api/worlds/WorldRegion.java
+# https://github.com/runelite/runelite/blob/b82bb71bd0db6703f31b2e66ba4bd106d683c737/runelite-client/src/main/java/net/runelite/client/game/WorldClient.java#L52
+# curl https://api.runelite.net/runelite-1.10.9-SNAPSHOT/worlds.js
+# curl https://api.runelite.net/runelite-1.10.8/worlds.js
+
+
+# questionable usefulness
+# https://github.com/runelite/runelite/blob/14dd3d2d24062f49eaae87724dee343009c18d8c/runelite-client/src/main/java/net/runelite/client/plugins/worldhopper/WorldTableRow.java#L47
 def getLocation(ipAddr):
     endPoint = 'http://ip-api.com/json/%s?fields=country,countryCode,lat,lon'%(ipAddr)
     response = requests.get(endPoint)
