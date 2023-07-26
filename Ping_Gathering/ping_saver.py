@@ -172,11 +172,12 @@ def save_records(connection, records):
     connection.commit()
     logging.info(f"saved {len(records)} ping measurements")
 
-def store_ping_and_head_latencies(connection):
+def store_ping_and_head_latencies(connection, i):
     location_key = get_my_location_key()
 
-    records = measure_latencies(measure_head_request, hostnames, [1, location_key])
-    records += measure_latencies(measure_ping_request, hostnames, [0, location_key])
+    records = measure_latencies(measure_ping_request, hostnames, [0, location_key])
+    if i % 10 == 0: # measure head requests a tenth as often
+        records += measure_latencies(measure_head_request, hostnames, [1, location_key])
 
     save_records(connection, records)
 
@@ -200,11 +201,13 @@ if __name__ == "__main__":
     logging.info("Starting up")
     prev_end_time = time.time()
     with get_connection(user="ping_inserter", password="665404ebeb06") as connection:
+        i = 0
         while True:
-            store_ping_and_head_latencies(connection)
+            store_ping_and_head_latencies(connection, i)
             end_time = time.time()
             elapsed = end_time - prev_end_time
             prev_end_time = end_time
             sleep_time = max(0, 60 - elapsed)
             logging.info(f"Waiting {sleep_time:.2f} seconds until next round of pings...")
             time.sleep(sleep_time)
+            i += 1
