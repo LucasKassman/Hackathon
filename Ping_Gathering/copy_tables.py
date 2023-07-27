@@ -52,21 +52,24 @@ def write_ping_data_table(connection):
     with open("ping_data.table", "rb") as f:
         ping_data_rows = pickle.load(f)
         print(ping_data_rows[0])
-        with connection.cursor() as cursor:
-            cursor.executemany("""
-                INSERT INTO ping_data(
-                    ping_time,
-                    ping_latency_ns,
-                    server_key,
-                    player_count,
-                    ping_type,
-                    location_key
-                ) VALUES (
-                    %s, %s, %s, %s, %s, %s
-                );
-            """, ping_data_rows
-            )
-    connection.commit()
+        batch_size = 10000
+        for i in range(0, len(ping_data_rows), batch_size):
+            with connection.cursor() as cursor:
+                cursor.executemany("""
+                    INSERT INTO ping_data(
+                        ping_time,
+                        ping_latency_ns,
+                        server_key,
+                        player_count,
+                        ping_type,
+                        location_key
+                    ) VALUES (
+                        %s, %s, %s, %s, %s, %s
+                    );
+                """, ping_data_rows[i:i+batch_size]
+                )
+            connection.commit()
+            print(f"Inserted {len(ping_data_rows[i:i+batch_size])} rows")
 
 def write_tables(connection):
     write_location_table(connection)
@@ -82,11 +85,11 @@ def copy_tables(connection):
     with open("ping_data.table", "wb") as f:
         pickle.dump(connector.execute_sql(connection, "SELECT * FROM ping_data"), f)
 
-with connector.get_connection() as connection:
-    # write_tables(connection)
-
-    # copy_tables(connetion)
-    pass
+if __name__ == "__main__":
+    with connector.get_connection() as connection:
+        #copy_tables(connetion)
+        #write_tables(connection)
+        pass
 
 # debugging
 '''
