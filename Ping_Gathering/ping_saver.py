@@ -35,6 +35,7 @@ from connector import get_connection, execute_sql
 
 @cachetools.func.ttl_cache(maxsize=4096, ttl=86400)
 def get_server_key(
+    connection,
     server_ip,
     server_country,
     server_country_code,
@@ -158,7 +159,7 @@ def get_ipv4_from_hostname(hostname):
 def query_world_info():
     return requests.get("https://api.runelite.net/runelite/worlds.js").json()["worlds"]
 
-def get_server_information():
+def get_server_information(connection):
     worlds = query_world_info()
     longest_type_list = 0
     hostnames = []
@@ -168,6 +169,7 @@ def get_server_information():
     location_info = getLocationBatch(server_ips)
     for world, location_info in zip(worlds, location_info):
         server_key = get_server_key(
+            connection,
             location_info["ip_address"],
             location_info["country"],
             location_info["countryCode"],
@@ -353,7 +355,7 @@ def save_records(connection, records):
 def store_ping_and_head_latencies(connection, i):
     location_key = get_my_location_key()
 
-    hostnames, server_keys, player_counts = get_server_information()
+    hostnames, server_keys, player_counts = get_server_information(connection)
 
     records = measure_latencies(measure_ping_request, hostnames, server_keys, player_counts, [0, location_key])
     if i % 10 == 0: # measure head requests a tenth as often
