@@ -36,21 +36,24 @@ from connector import get_connection, execute_sql
 @cachetools.func.ttl_cache(maxsize=4096, ttl=86400)
 def get_server_key(
     server_ip,
+    server_country,
+    server_country_code,
+    server_latitude,
+    server_longitude,
     server_hostname,
     world_location_label,
     world_number,
     world_types,
     world_activity,
 ):
-    server_location = getLocation(server_ip)
     server_tuple = (
         server_hostname,
 
         server_ip,
-        server_location["country"],
-        server_location["countryCode"],
-        server_location["lat"],
-        server_location["lon"],
+        server_country,
+        server_country_code,
+        server_latitude,
+        server_longitude,
 
         world_location_label,
         world_number,
@@ -161,11 +164,15 @@ def get_server_information():
     hostnames = []
     server_keys = []
     player_counts = []
-    for world in worlds:
-        server_ip = get_ipv4_from_hostname(world["address"])
-        print(server_ip)
+    server_ips = [get_ipv4_from_hostname(world["address"]) for world in worlds]
+    location_info = getLocationBatch(server_ips)
+    for world, server_ip, location_info in zip(worlds, server_ips, location_info):
         server_key = get_server_key(
             server_ip,
+            location_info["country"],
+            location_info["countryCode"],
+            location_info["lat"],
+            location_info["lon"],
             world["address"],
             get_world_location_label_from_integer(world["location"]),
             world["id"],
@@ -188,8 +195,6 @@ def getLocationBatch(ip_addresses):
     batches = split_to_batches_of_size(ip_addresses, 100)
     results = []
     for i, batch in enumerate(batches):
-        print(len(batch))
-        print(batch)
         #continue
         if i != 0:
             time.sleep(1)
