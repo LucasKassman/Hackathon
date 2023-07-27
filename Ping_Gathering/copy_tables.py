@@ -1,4 +1,5 @@
 import connector
+import logging
 import pickle
 from Ping_Gathering import ping_saver
 
@@ -52,24 +53,32 @@ def write_ping_data_table(connection):
     with open("ping_data.table", "rb") as f:
         ping_data_rows = pickle.load(f)
         print(ping_data_rows[0])
+        print(f"Inserting a total of {len(ping_data_rows)}")
         batch_size = 10000
         for i in range(0, len(ping_data_rows), batch_size):
+            batch = ping_data_rows[i:i+batch_size]
             with connection.cursor() as cursor:
-                cursor.executemany("""
-                    INSERT INTO ping_data(
-                        ping_time,
-                        ping_latency_ns,
-                        server_key,
-                        player_count,
-                        ping_type,
-                        location_key
-                    ) VALUES (
-                        %s, %s, %s, %s, %s, %s
-                    );
-                """, ping_data_rows[i:i+batch_size]
-                )
+                try:
+                    cursor.executemany("""
+                        INSERT INTO ping_data(
+                            ping_time,
+                            ping_latency_ns,
+                            ping_type,
+                            location_key,
+                            player_count,
+                            server_key
+                        ) VALUES (
+                            %s, %s, %s, %s, %s, %s
+                        );
+                    """, batch
+                    )
+                except Exception:
+                    #print([row for row in batch if row[4] is not None and row[4] > 1])
+                    #logging.exception(f"{batch}")
+                    print(f"Problem inserting row {i}!")
+                    raise
             connection.commit()
-            print(f"Inserted {len(ping_data_rows[i:i+batch_size])} rows")
+            print(f"Inserted row {i}: {len(batch)} rows")
 
 def write_tables(connection):
     write_location_table(connection)

@@ -5,10 +5,10 @@ with get_connection() as connection:
         CREATE TABLE IF NOT EXISTS ping_data(
             ping_time timestamp,
             ping_latency_ns integer,
-            server_key smallint,
             ping_type tinyint,
             location_key integer,
-            player_count smallint
+            player_count smallint,
+            server_key smallint
         );
     """)
 
