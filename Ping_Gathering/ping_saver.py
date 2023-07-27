@@ -166,9 +166,9 @@ def get_server_information():
     player_counts = []
     server_ips = [get_ipv4_from_hostname(world["address"]) for world in worlds]
     location_info = getLocationBatch(server_ips)
-    for world, server_ip, location_info in zip(worlds, server_ips, location_info):
+    for world, location_info in zip(worlds, location_info):
         server_key = get_server_key(
-            server_ip,
+            location_info["ip_address"],
             location_info["country"],
             location_info["countryCode"],
             location_info["lat"],
@@ -191,16 +191,23 @@ def split_to_batches_of_size(list_to_split, batch_size):
     return batches
 
 def getLocationBatch(ip_addresses):
-    endPoint = 'http://ip-api.com/batch?fields=country,countryCode,lat,lon'
+    endPoint = 'http://ip-api.com/batch?fields=country,countryCode,lat,lon,query'
     batches = split_to_batches_of_size(ip_addresses, 100)
-    results = []
+    unsorted_results = []
     for i, batch in enumerate(batches):
-        #continue
         if i != 0:
             time.sleep(1)
         response = requests.post(endPoint, json=batch)
         response.raise_for_status()
-        results += response.json()
+        unsorted_results += response.json()
+
+    results = []
+    for ip_address in ip_addresses:
+        for unsorted in unsorted_results:
+            if unsorted["query"] == ip_address:
+                unsorted["ip_address"] = ip_address
+                results.append(unsorted)
+
     return results
 
 def getLocation(ipAddr):
@@ -356,14 +363,12 @@ def store_ping_and_head_latencies(connection, i):
 
 if __name__ == "__main__":
     logging.info("Starting up")
-    prev_end_time = time.time()
     with get_connection(user="ping_inserter", password="665404ebeb06") as connection:
         i = 0
         while True:
+            loop_start = time.time()
             store_ping_and_head_latencies(connection, i)
-            end_time = time.time()
-            elapsed = end_time - prev_end_time
-            prev_end_time = end_time
+            elapsed = time.time() - loop_start
             sleep_time = max(0, 60 - elapsed)
             logging.info(f"Waiting {sleep_time:.2f} seconds until next round of pings...")
             time.sleep(sleep_time)
