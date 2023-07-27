@@ -6,3 +6,4 @@ with get_connection() as connection:
     execute_sql(connection, f'''CREATE USER "{inserter_user}" IDENTIFIED BY '{inserter_password}';''')
     execute_sql(connection, f'''GRANT INSERT ON TABLE ping_data TO "{inserter_user}"''')
     execute_sql(connection, f'''GRANT INSERT, SELECT ON TABLE location_dimension TO "{inserter_user}"''')
+    execute_sql(connection, f'''GRANT INSERT, SELECT ON TABLE server_dimension TO "{inserter_user}"''')
