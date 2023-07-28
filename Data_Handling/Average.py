@@ -10,7 +10,7 @@ def getData(servernums, starttime, cursor):
         INNER JOIN server_dimension USING (server_key) 
         WHERE server_hostname IN ('{}') 
         AND ping_time >= %s 
-        AND ping_type = 0""".format(server_list)
+        AND ping_type = 0 ORDER BY ping_time asc""".format(server_list)
     cursor.execute(query, (starttime,))
     results = cursor.fetchall()
 
