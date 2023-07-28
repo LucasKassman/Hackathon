@@ -3,7 +3,7 @@ def makeIndex(cursor):
      drop_server_index_query = "DROP INDEX IF EXISTS server_index ON ping_data"
      cursor.execute(drop_server_index_query)
 
-     server_index_query = "CREATE INDEX server_index ON ping_data (server_hostname(255))"
+     server_index_query = "CREATE INDEX server_index ON ping_data (server_key) USING BTREE"
      cursor.execute(server_index_query)
 
      drop_time_index_query = "DROP INDEX IF EXISTS ping_time_index ON ping_data"

@@ -5,22 +5,19 @@ with get_connection() as connection:
         CREATE TABLE IF NOT EXISTS ping_data(
             ping_time timestamp,
             ping_latency_ns integer,
-            server_key smallint,
             ping_type tinyint,
             location_key integer,
-            player_count smallint
+            player_count smallint,
+            server_key smallint
         );
     """)
 
-
-    # TODO convert location_dimension to use varchars
-    # (Text has a significantly different meaning in postgres vs mysql)
     execute_sql(connection, """
         CREATE TABLE IF NOT EXISTS location_dimension(
-            location_key serial,
-            ip_address text,
-            country text,
-            country_code text,
+            location_key INT UNSIGNED NOT NULL AUTO_INCREMENT UNIQUE,
+            ip_address varchar(16),
+            country varchar(32),
+            country_code varchar(8),
             latitude decimal(11, 7),
             longitude decimal(11, 7)
         )
@@ -42,5 +39,5 @@ with get_connection() as connection:
             world_types varchar(128),
             world_activity varchar(128)
         )
+    """
     )
-    """)

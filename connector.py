@@ -1,15 +1,8 @@
 import os
 import mysql.connector
 
-# Created a testDB_read user:
-#       GRANT SELECT ON test.* TO '4P4Mongv3vUVSHz.testDB_reader'@'%';
-#       SET PASSWORD FOR '4P4Mongv3vUVSHz.testDB_reader' = '#%6mQjE5A#kKGQ$b';
-# can show list of users by:
-#   SELECT * FROM mysql.user;
-
-
-user_base = "4P4Mongv3vUVSHz"
-root_password = "IimED29zRmjOxOPU"
+user_base = "2JcgxpZoUiGJUs9"
+root_password = "d0Hdwk03dZUk5uOL"
 
 
 from pathlib import Path
@@ -24,7 +17,7 @@ def get_connection(user="root", password=root_password, ssl=True):
     mysql_config = {
         'user': f"{user_base}.{user}",
         'password': password,
-        'host': 'gateway01.eu-central-1.prod.aws.tidbcloud.com',
+        'host': 'gateway01.us-west-2.prod.aws.tidbcloud.com',
         'database': 'test',
         'port': '4000',
     }
