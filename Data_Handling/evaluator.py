@@ -1,6 +1,8 @@
 import pprint
 import datetime
 from Data_Handling.Average import *
+from Data_Handling.locationGrabber import *
+from Data_Handling.location import *
 
 #
 # return a list of servers to probe.
@@ -14,6 +16,13 @@ def getServers():
             # return just the server element, i.e. first item in the tuple
             return list(zip(*results))[0]
             #return results
+def getLocationData():
+    with get_read_only_connection() as connection:
+        with connection.cursor() as cursor:
+            query = "SELECT * from location_dimension"
+            cursor.execute(query)
+            results = cursor.fetchall()
+            return results
 
 #
 # return the most recent time for recorded ping data
@@ -41,11 +50,15 @@ def getServers2(cursor):
         'oldschool9.runescape.com',
         'oldschool10.runescape.com'
         ]
-        
+
+
+
 
 #
 # Evaluate all servers (TBD: for a given region)
 def evaluate(sl, region = None, hours=2):
+    location = getLocation(get_my_ip())
+
     aves = {}
     weighted_averages = {}
     server_data = {}
@@ -53,11 +66,10 @@ def evaluate(sl, region = None, hours=2):
         with connection.cursor() as cursor:
             first_time = getLastPingTime(cursor)
             starttime = first_time - datetime.timedelta(hours=hours)
-            av, raw_data, weighted_avgs,variances = getAveragePing(sl, starttime, cursor,first_time)
-            lowest_avg = float('inf')
+            av, raw_data, weighted_avgs,variances = getAveragePing(sl, starttime, cursor,first_time,location,getLocationData())
             lowest_weighted_avg = float('inf')
             lowest_variance = float('inf')
-
+            lowest_avg = float('inf')
 
 
             for i in range(len(sl)):
@@ -115,11 +127,11 @@ def evaluate(sl, region = None, hours=2):
     for s in top_server_names:
 
         #plot_data[s] = {"average":aves[s],"timestamps":list(zip(*server_data[s]))[0],"goodness":list(zip(*server_data[s]))[1]}
-
+        #print(raw_data)
         plot_data[s] = {
             "average": weighted_averages[s],
-            "timestamps": [row[0] for row in raw_data if row[2] == s],
-            "goodness": [row[1] for row in raw_data if row[2] == s]
+            "timestamps": [row['ping_time'] for row in raw_data if row['server_hostname'] == s],
+            "goodness": [row['ping_latency_ns'] for row in raw_data if row['server_hostname'] == s]
         }
         #plot_data[s] = {"timestamps":list(zip(*server_data[s]))[0],"goodness":list(zip(*server_data[s]))[1]}
 
