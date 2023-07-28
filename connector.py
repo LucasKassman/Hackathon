@@ -1,8 +1,8 @@
 import os
 import mysql.connector
 
-user_base = "2JcgxpZoUiGJUs9"
-root_password = "d0Hdwk03dZUk5uOL"
+user_base = "3ZB6yqw3EiU7NBm"
+root_password = "ZQvEIMYbAzIe4d7I"
 
 
 from pathlib import Path
@@ -17,7 +17,7 @@ def get_connection(user="root", password=root_password, ssl=True):
     mysql_config = {
         'user': f"{user_base}.{user}",
         'password': password,
-        'host': 'gateway01.us-west-2.prod.aws.tidbcloud.com',
+        'host': 'gateway01.eu-central-1.prod.aws.tidbcloud.com',
         'database': 'test',
         'port': '4000',
     }
