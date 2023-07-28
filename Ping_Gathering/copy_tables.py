@@ -96,7 +96,7 @@ def copy_tables(connection):
 
 if __name__ == "__main__":
     with connector.get_connection() as connection:
-        #copy_tables(connetion)
+        #copy_tables(connection)
         #write_tables(connection)
         pass
 
