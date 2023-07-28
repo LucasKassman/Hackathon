@@ -193,7 +193,7 @@ class ChildWindow:
         super().__init__()
         # print("in ChildWindow __init__")
         self.g = Grapher(title)  # create a Grapher object
-        self.g.setYminmax([0, 70])
+        self.g.setYminmax([float('inf'), 1])
         plot_data = evaluate(sl, hours)  # evaluate them
         for server in plot_data:  # add the data to the graph
             self.g.addData(
