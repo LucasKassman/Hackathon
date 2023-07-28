@@ -7,7 +7,7 @@ from Data_Handling.Average import *
 def getServers():
     with get_read_only_connection() as connection:
         with connection.cursor() as cursor:
-            query = "SELECT server FROM server_list WHERE valid= 'TRUE'"
+            query = "SELECT DISTINCT server_hostname FROM server_dimension WHERE world_number != 0"
             cursor.execute(query)
             results = cursor.fetchall()
             #print(results)
