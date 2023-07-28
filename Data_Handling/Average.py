@@ -1,5 +1,6 @@
 import datetime
 import math
+import copy
 from connector import *
 from Data_Handling.location import *
 
@@ -70,9 +71,6 @@ def trim_data(data):
         row = updated_row
 
 
-
-
-
 def getAveragePing(servernums, since, cursor,first_time,location,location_data):
     averages = []
     weightedAverages = []
@@ -83,15 +81,7 @@ def getAveragePing(servernums, since, cursor,first_time,location,location_data):
 
     data= getData(servernums, since, cursor)
     #trim_data(passedResults)
-    time_block_begin = since
     print("first time variable:", since)
-    current_running_data = {
-        'ping_latency_ns': 0,
-        'ping_time': time_block_begin,
-        'total_weight': 0,
-        'server_hostname': None
-    }
-
 
     for server in servernums:
         server_data = [row for row in data if row['server_hostname'] == server]
@@ -99,14 +89,20 @@ def getAveragePing(servernums, since, cursor,first_time,location,location_data):
         count = 0
         totalWeighted = 0
         total_weight = 0
-        current_running_data['server_hostname'] = server
-
+        time_block_begin = since
+        current_running_data = {
+            'ping_latency_ns': 0,
+            'ping_time': time_block_begin,
+            'total_weight': 0,
+            'server_hostname': server
+        }
+        
+        last_server="none"
         for row in server_data:
             time_block_current = row['ping_time']
             value,incremental_weight = calculateWeight(row, first_time,location,location_data)
+
             if value != None:
-
-
                 weighted = value * incremental_weight
                 totalWeighted += weighted
                 total_weight += incremental_weight
@@ -120,14 +116,26 @@ def getAveragePing(servernums, since, cursor,first_time,location,location_data):
                 #if time_diff > 180:
                 if time_diff > 360:
                     current_running_data['ping_latency_ns'] = current_running_data['ping_latency_ns'] / current_running_data['total_weight']
-                    display_data.append(current_running_data)
                     time_block_begin = time_block_current
+                    display_data.append(copy.copy(current_running_data))
+
                     current_running_data = {
                         'ping_latency_ns': 0,
                         'ping_time': time_block_begin,
                         'total_weight': 0,
                         'server_hostname': server
                     }
+                    last_server = server
+
+        #
+        # flush out the end of the current server's data (if any has been collected since the last time)
+        if current_running_data['ping_latency_ns'] != 0:
+            current_running_data['ping_latency_ns'] = current_running_data['ping_latency_ns'] / current_running_data['total_weight']
+            time_block_begin = time_block_current
+            display_data.append(copy.copy(current_running_data))
+
+        print("--------------------------")
+        print(display_data)
 
         if count > 0:
             average = total / count
@@ -151,6 +159,8 @@ def getAveragePing(servernums, since, cursor,first_time,location,location_data):
                 total_variance += weighted_sq_deviation
 
         variances.append(total_variance / total_weight)
+
+    
     print("display data: ", display_data)
     #display_data.reverse()
     return averages, display_data, weightedAverages, variances
