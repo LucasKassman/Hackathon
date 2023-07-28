@@ -134,8 +134,8 @@ def getAveragePing(servernums, since, cursor,first_time,location,location_data):
             time_block_begin = time_block_current
             display_data.append(copy.copy(current_running_data))
 
-        print("--------------------------")
-        print(display_data)
+        # print("--------------------------")
+        # print(display_data)
 
         if count > 0:
             average = total / count
