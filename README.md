@@ -2,9 +2,9 @@
 ## Requirements
 Python3.8+ with pip
 ### Mac/Linux Requirements
-tkinter (This comes on Windows by default)
-Installation Hints:
-Ubuntu: `sudo apt-get install python3-tk`
+tkinter (This comes on Windows by default)<br>
+Installation Hints:<br>
+Ubuntu: `sudo apt-get install python3-tk`<br>
 Mac: `brew install python-tk`
 ## Instructions
 `pip3 install -r requirements.txt`
