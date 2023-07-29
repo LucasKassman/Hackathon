@@ -1,0 +1,4 @@
+mysql-connector-python
+requests
+cachetools
+matplotlib
