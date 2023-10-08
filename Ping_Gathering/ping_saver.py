@@ -17,30 +17,13 @@ logging.basicConfig(
 
 
 from connector import get_connection, execute_sql
+from location_utils import *
 
-# East/west seems to be jagex only config at-the-moment
-# giving up for now, we could hardcode
-# thought: store server IP
-
-# server location
-# https://github.com/runelite/api.runelite.net/blob/master/http-api/src/main/java/net/runelite/http/api/worlds/WorldRegion.java
-# https://github.com/runelite/runelite/blob/b82bb71bd0db6703f31b2e66ba4bd106d683c737/runelite-client/src/main/java/net/runelite/client/game/WorldClient.java#L52
-# curl https://api.runelite.net/runelite-1.10.9-SNAPSHOT/worlds.js
-# curl https://api.runelite.net/runelite-1.10.8/worlds.js
-# !!! https://api.runelite.net/runelite/worlds.js
-
-
-# questionable usefulness
-# https://github.com/runelite/runelite/blob/14dd3d2d24062f49eaae87724dee343009c18d8c/runelite-client/src/main/java/net/runelite/client/plugins/worldhopper/WorldTableRow.java#L47
 
 @cachetools.func.ttl_cache(maxsize=4096, ttl=86400)
 def get_server_key(
     connection,
     server_ip,
-    server_country,
-    server_country_code,
-    server_latitude,
-    server_longitude,
     server_hostname,
     world_location_label,
     world_number,
@@ -49,12 +32,7 @@ def get_server_key(
 ):
     server_tuple = (
         server_hostname,
-
         server_ip,
-        server_country,
-        server_country_code,
-        server_latitude,
-        server_longitude,
 
         world_location_label,
         world_number,
@@ -62,102 +40,32 @@ def get_server_key(
         world_activity,
     )
 
-    execute_sql(
-        connection,
-        """
-        INSERT INTO server_dimension(
-            server_hostname,
-
-            server_ip,
-            server_country,
-            server_country_code,
-            server_latitude,
-            server_longitude,
-
-            world_location_label,
-            world_number,
-            world_types,
-            world_activity
-        )
-        WITH record_to_insert AS (
-        SELECT  %s AS server_hostname,
-                %s AS server_ip,
-                %s AS server_country,
-                %s AS server_country_code,
-                CAST(%s AS decimal(11,7)) AS server_latitude,
-                CAST(%s AS decimal(11,7)) AS server_longitude,
-                %s AS world_location_label,
-                %s AS world_number,
-                %s AS world_types,
-                %s AS world_activity
-        ), existing_server AS (
-            SELECT server_key
-            FROM server_dimension
-            INNER JOIN record_to_insert
-            USING (
-                server_hostname,
-
-                server_ip,
-                server_country,
-                server_country_code,
-                server_latitude,
-                server_longitude,
-
-                world_location_label,
-                world_number,
-                world_types,
-                world_activity
-            )
-        )
-        SELECT server_hostname,
-            server_ip, server_country, server_country_code, server_latitude, server_longitude,
-            world_location_label, world_number, world_types, world_activity
-        FROM record_to_insert
-        LEFT JOIN existing_server ON TRUE
-        WHERE existing_server.server_key IS NULL;
-        """,
-        server_tuple,
-    )
-    return execute_sql(
+    server_key_rows = execute_sql(
         connection,
         """
         SELECT server_key
         FROM server_dimension
-        WHERE server_hostname = %s
-
+        WHERE
+            server_hostname = %s
             AND server_ip = %s
-            AND server_country = %s
-            AND server_country_code = %s
-            AND server_latitude = CAST(%s AS decimal(11,7))
-            AND server_longitude = CAST(%s AS decimal(11,7))
-
             AND world_location_label = %s
             AND world_number = %s
             AND world_types = %s
             AND world_activity = %s
         """,
         server_tuple,
-    )[0][0]
+    )
+    if len(server_key_rows) > 1:
+        logging.warning(
+            f"Found multiple keys {server_key_rows}"
+            f" for server_tuple {server_tuple}"
+        )
+    if len(server_key_rows) == 0:
+        logging.warning(f"Found no server_key {server_key_rows} for {server_tuple}")
+        # TOCONSIDER also post to trigger the server updater
+        return None
 
-def get_world_location_label_from_integer(location_id):
-    # https://github.com/runelite/api.runelite.net/blob/master/http-api/src/main/java/net/runelite/http/api/worlds/WorldRegion.java
-    if location_id == 0:
-        return "UNITED_STATES"
-    elif location_id == 1:
-        return "UNITED_KINGDOM"
-    elif location_id == 3:
-        return "AUSTRALIA"
-    elif location_id == 7:
-        return "GERMANY"
-    else:
-        return "UNKNOWN"
-
-@cachetools.func.ttl_cache(maxsize=4096, ttl=3600)
-def get_ipv4_from_hostname(hostname):
-    return socket.gethostbyname_ex(hostname)[2][0]
-
-def query_world_info():
-    return requests.get("https://api.runelite.net/runelite/worlds.js").json()["worlds"]
+    return server_key_rows[0][0]
 
 def get_server_information(connection):
     worlds = query_world_info()
@@ -165,58 +73,24 @@ def get_server_information(connection):
     hostnames = []
     server_keys = []
     player_counts = []
-    server_ips = [get_ipv4_from_hostname(world["address"]) for world in worlds]
-    location_info = getLocationBatch(server_ips)
-    for world, location_info in zip(worlds, location_info):
+    server_ips = get_ipv4_from_hostname_batch([world["address"] for world in worlds])
+    for world, server_ip in zip(worlds, server_ips):
         server_key = get_server_key(
             connection,
-            location_info["ip_address"],
-            location_info["country"],
-            location_info["countryCode"],
-            location_info["lat"],
-            location_info["lon"],
+            server_ip,
             world["address"],
             get_world_location_label_from_integer(world["location"]),
             world["id"],
             json.dumps(world["types"]),
             world["activity"],
         )
+        if server_key is None:
+            continue
         server_keys.append(server_key)
         hostnames.append(world["address"])
         player_counts.append(world["players"])
     return hostnames, server_keys, player_counts
 
-def split_to_batches_of_size(list_to_split, batch_size):
-    batches = []
-    for i in range(0, len(list_to_split), batch_size):
-        batches.append(list_to_split[i:i+batch_size])
-    return batches
-
-def getLocationBatch(ip_addresses):
-    endPoint = 'http://ip-api.com/batch?fields=country,countryCode,lat,lon,query'
-    batches = split_to_batches_of_size(ip_addresses, 100)
-    unsorted_results = []
-    for i, batch in enumerate(batches):
-        if i != 0:
-            time.sleep(1)
-        response = requests.post(endPoint, json=batch)
-        response.raise_for_status()
-        unsorted_results += response.json()
-
-    results = []
-    for ip_address in ip_addresses:
-        for unsorted in unsorted_results:
-            if unsorted["query"] == ip_address:
-                unsorted["ip_address"] = ip_address
-                results.append(unsorted)
-
-    return results
-
-def getLocation(ipAddr):
-    endPoint = 'http://ip-api.com/json/%s?fields=country,countryCode,lat,lon'%(ipAddr)
-    response = requests.get(endPoint)
-    response.raise_for_status()
-    return response.json()
 
 @cachetools.func.ttl_cache(maxsize=64, ttl=3600)
 def get_location_key(connection, ip_address):
@@ -318,10 +192,10 @@ def measure_latencies(measure_function, hostnames, server_keys, player_counts, e
     futures = []
     start_times = []
     latencies = []
-    with concurrent.futures.ThreadPoolExecutor(max_workers=4) as executor:
+    with concurrent.futures.ThreadPoolExecutor(max_workers=16) as executor:
         for hostname in hostnames:
             futures.append(executor.submit(measure_function, hostname))
-        for future in futures:
+        for future in futures: # Note: cannot use as_completed without tweaks; it will mess with the order
             start_time, latency = future.result()
             start_times.append(start_time)
             latencies.append(latency)
@@ -365,7 +239,13 @@ def store_ping_and_head_latencies(connection, i):
 
 if __name__ == "__main__":
     logging.info("Starting up")
-    with get_connection(user="ping_inserter", password="665404ebeb06") as connection:
+    with get_connection(user="lamb_ping_insert") as connection:
+        '''
+        start_time = time.time()
+        store_ping_and_head_latencies(connection, 5)
+        print(f"Took {time.time() - start_time}")
+        exit(0)
+        '''
         i = 0
         while True:
             loop_start = time.time()
