@@ -3,6 +3,7 @@ from connector import *
 with get_connection() as connection:
     execute_sql(connection, """
         CREATE TABLE IF NOT EXISTS location_dimension(
+            -- If this causes a problem, change to AUTO_RANDOM bigint
             location_key INT UNSIGNED NOT NULL AUTO_INCREMENT UNIQUE,
             ip_address varchar(16),
             country varchar(32),
@@ -14,6 +15,7 @@ with get_connection() as connection:
 
     execute_sql(connection, """
         CREATE TABLE IF NOT EXISTS server_dimension(
+            -- Consdier making server_key the primary key
             server_key SMALLINT UNSIGNED,
             server_hostname varchar(64),
 

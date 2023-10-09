@@ -1,5 +1,20 @@
+import logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s [%(levelname)s] %(funcName)s(): %(message)s'
+)
+
 from Ping_Gathering.ping_saver import *
 from connector import *
+
+CONNECTION = None
+def get_cached_connection(user):
+    # TOCONSIDER de-dupe - move to connector.py? Test w/ lambda
+    global CONNECTION
+    if CONNECTION is None:
+        print("Establishing new connection")
+        CONNECTION = get_connection(user=user)
+    return CONNECTION
 
 def lambda_handler(event, lambda_context):
     if "resources" in event:
@@ -12,38 +27,13 @@ def lambda_handler(event, lambda_context):
     else:
         ping_type = 2
 
-    print(event)
-    with get_connection(user="lamb_ping_insert") as connection:
+    # print(event)
 
+    connection = get_cached_connection(user="lamb_ping_insert")
+    # with get_connection(user="lamb_ping_insert") as connection:
+    records = measure_and_format_latencies(connection, ping_type=ping_type)
 
-        records = measure_and_format_latencies(connection, ping_type=ping_type)
+    save_records(connection, records)
 
-        save_records(connection, records)
-
-        '''
-        measure_function = measure_head_request
-
-        location_key = get_my_location_key(connection)
-
-        worlds = query_world_info()
-        hostnames = [world["address"] for world in worlds]
-
-        latencies, ipv4_addrs = measure_latencies(measure_function, hostnames)
-
-        records = create_records()
-
-        ip_addresses_out = []
-        records = measure_latencies(
-            measure_head_request, hostnames, server_keys, player_counts,
-            [1, location_key], ip_addresses_out
-        )
-
-        hostnames, server_keys, player_counts = get_server_information(connection)
-
-        records = measure_latencies(
-            measure_head_request, hostnames, server_keys, player_counts,
-            [1, location_key]
-        )
-
-        save_records(connection, records)
-        '''
+if __name__ == "__main__":
+    lambda_handler({}, {})

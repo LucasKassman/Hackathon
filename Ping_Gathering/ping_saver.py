@@ -1,4 +1,7 @@
 import cachetools.func
+from cachetools import cached
+from cachetools import TTLCache
+from cachetools.keys import hashkey
 import concurrent.futures
 import datetime
 import json
@@ -10,17 +13,45 @@ import socket
 import subprocess
 import time
 
+SERVER_KEY_CACHE_MISSES = 0
+
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s [%(levelname)s] %(funcName)s(): %(message)s'
 )
 
+try:
+    from tcppinglib import tcpping
+except ModuleNotFoundError:
+    logging.warning("tcp_ping (ping type 2) will not work. Other pings are fine")
 
 from connector import get_connection, execute_sql
 from location_utils import *
 
+server_key_cache = TTLCache(maxsize=4096, ttl=86400)
+location_key_cache = TTLCache(maxsize=64, ttl=3600)
 
-@cachetools.func.ttl_cache(maxsize=4096, ttl=86400)
+@cached(
+    server_key_cache,
+    # Remove connection from the key
+    key = lambda
+        connection,
+        server_ip,
+        server_hostname,
+        world_location_label,
+        world_number,
+        world_types,
+        world_activity
+    :
+        hashkey(
+        server_ip,
+        server_hostname,
+        world_location_label,
+        world_number,
+        world_types,
+        world_activity
+    )
+)
 def get_server_key(
     connection,
     server_ip,
@@ -30,6 +61,9 @@ def get_server_key(
     world_types,
     world_activity,
 ):
+    global SERVER_KEY_CACHE_MISSES
+    SERVER_KEY_CACHE_MISSES += 1
+    #logging.info(f"Missed cache for {world_number}")
     server_tuple = (
         server_hostname,
         server_ip,
@@ -67,13 +101,18 @@ def get_server_key(
 
     return server_key_rows[0][0]
 
-def get_server_information(connection):
-    worlds = query_world_info()
+def get_server_information(connection, worlds, server_ips=None):
+    global SERVER_KEY_CACHE_MISSES
+    SERVER_KEY_CACHE_MISSES = 0
+    if not server_ips:
+        server_ips = get_ipv4_from_hostname_batch(
+            [world["address"] for world in worlds]
+        )
+
     longest_type_list = 0
     hostnames = []
     server_keys = []
     player_counts = []
-    server_ips = get_ipv4_from_hostname_batch([world["address"] for world in worlds])
     for world, server_ip in zip(worlds, server_ips):
         server_key = get_server_key(
             connection,
@@ -89,11 +128,19 @@ def get_server_information(connection):
         server_keys.append(server_key)
         hostnames.append(world["address"])
         player_counts.append(world["players"])
-    return hostnames, server_keys, player_counts
 
+    print(
+        f"There were {SERVER_KEY_CACHE_MISSES} server_key cache misses in get_server_information"
+    )
+    return server_keys, player_counts
 
-@cachetools.func.ttl_cache(maxsize=64, ttl=3600)
+@cached(
+    location_key_cache,
+    # Remove connection from the key
+    key = lambda connection, ip_address : hashkey(ip_address)
+)
 def get_location_key(connection, ip_address):
+    print(f"location_key cache miss for {ip_address}")
     location = getLocation(ip_address)
     location_tuple = (
         ip_address,
@@ -141,16 +188,26 @@ def get_location_key(connection, ip_address):
         location_tuple,
     )[0][0]
 
-def get_my_location_key():
+def get_my_location_key(connection):
+    my_ip = requests.get("http://ifconfig.me").text
+    return get_location_key(connection, my_ip)
+
+def get_my_location_key_with_retries(connection):
     while True:
         try:
-            my_ip = requests.get("http://ifconfig.me").text
-            location_key = get_location_key(connection, my_ip)
+            location_key = get_my_location_key(connection)
             break
         except Exception as e:
             logging.exception("Failed to determine location! Trying again in 60s...")
             time.sleep(60)
     return location_key
+
+def measure_tcp_ping_request(hostname):
+    # https://pypi.org/project/tcppinglib/
+    start_time = datetime.datetime.utcnow()
+    response = tcpping(hostname, count=1)
+    latency_ns = round(response.avg_rtt * 1000) # avg_rtt already in ms
+    return start_time, latency_ns, response.ip_address
 
 def measure_head_request(hostname):
     start_time = datetime.datetime.utcnow()
@@ -160,7 +217,7 @@ def measure_head_request(hostname):
     except Exception:
         logging.exception("Failed to run HTTP HEAD request!")
         latency_ns = None
-    return start_time, latency_ns
+    return start_time, latency_ns, None
 
 def measure_ping_request(hostname):
     param = "-n" if "windows" in platform.system().lower() else "-c"
@@ -185,28 +242,37 @@ def measure_ping_request(hostname):
                 logging.exception(f"Failed to parse ping time of {ping_ms_string}")
                 latency_ns = None
 
-    return start_time, latency_ns
+    return start_time, latency_ns, None
 
 
-def measure_latencies(measure_function, hostnames, server_keys, player_counts, extra_rows = []):
+def create_ping_data_records(
+    start_times, latencies, server_keys, player_counts, ping_type, location_key,
+):
+    records = []
+    for start_time, latency, server_key, player_count in zip(
+        start_times, latencies, server_keys, player_counts
+    ):
+        records.append(
+            [start_time, latency, server_key, player_count, ping_type, location_key]
+        )
+    return records
+
+def measure_latencies(measure_function, hostnames):
     futures = []
     start_times = []
     latencies = []
-    with concurrent.futures.ThreadPoolExecutor(max_workers=16) as executor:
+    ipv4_addrs = []
+    with concurrent.futures.ThreadPoolExecutor(max_workers=1) as executor:
         for hostname in hostnames:
             futures.append(executor.submit(measure_function, hostname))
         for future in futures: # Note: cannot use as_completed without tweaks; it will mess with the order
-            start_time, latency = future.result()
+            start_time, latency, ipv4_addr = future.result()
             start_times.append(start_time)
             latencies.append(latency)
+            if ipv4_addr:
+                ipv4_addrs.append(ipv4_addr)
 
-    records = []
-    for server_key, latency, start_time, player_count in zip(server_keys, latencies, start_times, player_counts):
-        records.append(
-            [start_time, latency, server_key, player_count] + extra_rows
-        )
-    logging.info(f"Finished running {measure_function.__name__} {len(hostnames)} times")
-    return records
+    return start_times, latencies, ipv4_addrs
 
 def save_records(connection, records):
     with connection.cursor() as cursor:
@@ -226,14 +292,50 @@ def save_records(connection, records):
     connection.commit()
     logging.info(f"saved {len(records)} ping measurements")
 
+
+def measure_and_format_latencies(connection, location_key=None, ping_type=0):
+    if ping_type == 0:
+        measure_function = measure_ping_request
+    elif ping_type == 1:
+        measure_function = measure_head_request
+    elif ping_type == 2:
+        measure_function = measure_tcp_ping_request
+    else:
+        raise Exception("Invalid ping_type {ping_type} specified!")
+
+    if location_key is None:
+        location_key = get_my_location_key(connection)
+
+    worlds = query_world_info()
+    hostnames = [world["address"] for world in worlds]
+
+    start_times, latencies, ipv4_addrs = measure_latencies(
+        measure_function, hostnames
+    )
+
+    server_keys, player_counts = get_server_information(
+        connection, worlds, ipv4_addrs
+    )
+
+    records = create_ping_data_records(
+        start_times=start_times,
+        latencies=latencies,
+        server_keys=server_keys,
+        player_counts=player_counts,
+        ping_type=ping_type,
+        location_key=location_key,
+    )
+    return records
+
 def store_ping_and_head_latencies(connection, i):
-    location_key = get_my_location_key()
+    location_key = get_my_location_key_with_retries(connection)
 
-    hostnames, server_keys, player_counts = get_server_information(connection)
-
-    records = measure_latencies(measure_ping_request, hostnames, server_keys, player_counts, [0, location_key])
+    records = measure_and_format_latencies(connection, location_key, ping_type=2)
+    if i % 5 == 0: # measure ICMP pings a fifth as often
+        records += measure_and_format_latencies(connection, location_key, ping_type=0)
     if i % 10 == 0: # measure head requests a tenth as often
-        records += measure_latencies(measure_head_request, hostnames, server_keys, player_counts, [1, location_key])
+        # This does call get_server_key twice, but it's fine since it's cached!
+        records += measure_and_format_latencies(connection, location_key, ping_type=1)
 
     save_records(connection, records)
 

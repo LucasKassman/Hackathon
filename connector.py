@@ -1,3 +1,4 @@
+import certifi
 import os
 import mysql.connector
 
@@ -28,7 +29,7 @@ def get_connection(user="root", ssl=True):
     if ssl:
         mysql_config['ssl_verify_cert'] = True
         mysql_config['ssl_verify_identity'] = True
-        mysql_config['ssl_ca'] = ssl_cert_pathname
+        mysql_config['ssl_ca'] = certifi.where() #ssl_cert_pathname
     return mysql.connector.connect(**mysql_config)
 
 def get_read_only_connection():

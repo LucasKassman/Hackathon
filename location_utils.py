@@ -1,4 +1,3 @@
-import cachetools.func
 import concurrent.futures
 import socket
 import time
@@ -23,7 +22,6 @@ import requests
 def query_world_info():
     return requests.get("https://api.runelite.net/runelite/worlds.js").json()["worlds"]
 
-@cachetools.func.ttl_cache(maxsize=4096, ttl=3600)
 def get_world_location_label_from_integer(location_id):
     # https://github.com/runelite/api.runelite.net/blob/master/http-api/src/main/java/net/runelite/http/api/worlds/WorldRegion.java
     if location_id == 0:

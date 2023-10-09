@@ -3,6 +3,15 @@ import json
 from connector import *
 from location_utils import *
 
+CONNECTION = None
+def get_cached_connection(user):
+    # TOCONSIDER de-dupe - move to connector.py? Test w/ lambda
+    global CONNECTION
+    if CONNECTION is None:
+        print("Establishing new connection")
+        CONNECTION = get_connection(user=user)
+    return CONNECTION
+
 def write_server_data(connection, server_tuples):
     with connection.cursor() as cursor:
         cursor.execute("""
@@ -139,5 +148,10 @@ def update_servers(connection):
         )
     write_server_data(connection, server_tuples)
 
-with get_connection("server_updater") as connection:
+def lambda_handler(event, context):
+    connection = get_cached_connection(user="server_updater")
     update_servers(connection)
+
+if __name__ == "__main__":
+    with get_connection("server_updater") as connection:
+        update_servers(connection)

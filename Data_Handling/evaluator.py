@@ -136,7 +136,8 @@ def evaluate(sl, region = None, hours=2):
         plot_data[s] = {
             "average": weighted_averages[s],
             "timestamps": [row['ping_time'] for row in raw_data if row['server_hostname'] == s],
-            "goodness": [row['ping_latency_ns'] for row in raw_data if row['server_hostname'] == s]
+            "goodness": [row['ping_latency_ns'] for row in raw_data if row['server_hostname'] == s],
+            "world_number": next(row['world_number'] for row in raw_data if row['server_hostname'] == s),
         }
         #plot_data[s] = {"timestamps":list(zip(*server_data[s]))[0],"goodness":list(zip(*server_data[s]))[1]}
 

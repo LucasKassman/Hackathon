@@ -217,8 +217,12 @@ def create_lambda(
             dependencies,
         )
 
-    if lambda_layer_arn == "lookup_latest":
-        lambda_layer_arn = lookup_latest_layer_arn(client, lambda_name + "_layer")
+    if lambda_layer_arn.split(":")[0] == "lookup_latest":
+        if lambda_layer_arn.split(":")[-1] == "lookup_latest":
+            layer_name = lambda_name + "_layer"
+        else:
+            layer_name = lambda_layer_arn.split(":")[-1]
+        lambda_layer_arn = lookup_latest_layer_arn(client, layer_name)
 
     if zipped_bytes is None:
         zipped_bytes = io.BytesIO()
@@ -314,19 +318,39 @@ def deploy_s3_files():
 
     print(f"https://{bucket_name}.s3.{aws_region}.amazonaws.com/{home_page}")
 
+def create_server_updater_lambda(lambda_client):
+    files_to_deploy = [
+        "Ping_Gathering/server_updater.py",
+        "connector.py",
+        "location_utils.py",
+        "passwords/server_updater_password.txt",
+    ]
+
+    zipped_bytes = io.BytesIO()
+    with zipfile.ZipFile(zipped_bytes, "w") as z:
+        for filename in files_to_deploy:
+            z.write(filename)
+
+    create_lambda(
+            client=lambda_client,
+            lambda_name=f"ServerScope_server_updater",
+            lambda_file="Ping_Gathering.server_updater.py",
+            lambda_timeout_s=300,
+            iam_role="AWSLambdaBasicExecutionRole",
+            principal=None, # cloudwatch?
+            source_arn=None,
+            zipped_bytes=zipped_bytes,
+            lambda_layer_arn=f"lookup_latest:ServerScope_pinger_{aws_region}_layer"
+        )
+
 #deploy_s3_files()
 if __name__ == "__main__":
     import argparse
     parser = argparse.ArgumentParser()
     parser.add_argument('--force_updates', action="store_true")
+    parser.add_argument('--all_regions', action="store_true")
+    parser.add_argument('--server_updater', action="store_true")
     args = parser.parse_args()
-
-    # Set this up manually with `aws configure`
-    session = boto3.session.Session()
-    aws_region = session.region_name
-    aws_account_id = session.client("sts").get_caller_identity()["Account"]
-
-    print(aws_region)
 
     files_to_deploy = [
         "lambda_handler.py",
@@ -341,18 +365,40 @@ if __name__ == "__main__":
         for filename in files_to_deploy:
             z.write(filename)
 
-    lambda_client = session.client("lambda")
-    create_lambda(
-        client=lambda_client,
-        lambda_name="ServerScope_pinger_us-east-2",
-        lambda_file="lambda_handler.py",
-        lambda_timeout_s=120,
-        iam_role="AWSLambdaBasicExecutionRole",
-        principal=None, # cloudwatch?
-        source_arn=None,
-        zipped_bytes=zipped_bytes,
-        #dependencies="reqirements.txt",
-        #dependencies=["tcppinglib", "requests", "cachetools", "mysql-connector-python"], # exclude matplotlib
-        #lambda_layer_arn=f"arn:aws:lambda:us-east-2:{aws_account_id}:layer:ServerScope_pinger_us-east-2_layer:16",
-        lambda_layer_arn="lookup_latest"
-    )
+    # Intent is: 3 pingers, us-east-2 (Ohio), eu-west-2 (London), ap-northeast-1 (Tokyo)
+    # Cloudwatch is set up manually for now
+    # TCP ping every: 1m us-east / 4m Japan / 5m UK
+    # HTTP Head ping ever 10m us-east / 12m Japan / 15m UK
+    # TOCONSIDER 2/4/6, 7/11/15?
+    # server_updater every hour
+    # aggregator/deleter TBD
+
+    regions = ["us-east-2"]
+    if args.all_regions:
+        regions += ["eu-west-2", "ap-northeast-1"]
+
+    for region in regions:
+        # Set this up manually with `aws configure`
+        session = boto3.session.Session(region_name=region)
+        aws_region = session.region_name
+        aws_account_id = session.client("sts").get_caller_identity()["Account"]
+        print(aws_region)
+        lambda_client = session.client("lambda")
+
+        if region == "us-east-2" and args.server_updater:
+            create_server_updater_lambda(lambda_client)
+
+        create_lambda(
+            client=lambda_client,
+            lambda_name=f"ServerScope_pinger_{aws_region}",
+            lambda_file="lambda_handler.py",
+            lambda_timeout_s=120 if region == "us-east-2" else 300,
+            iam_role="AWSLambdaBasicExecutionRole",
+            principal=None, # cloudwatch?
+            source_arn=None,
+            zipped_bytes=zipped_bytes,
+            #dependencies="reqirements.txt",
+            #dependencies=["tcppinglib", "requests", "cachetools", "mysql-connector-python"], # exclude matplotlib
+            #lambda_layer_arn=f"arn:aws:lambda:us-east-2:{aws_account_id}:layer:ServerScope_pinger_us-east-2_layer:16",
+            lambda_layer_arn="lookup_latest"
+        )
