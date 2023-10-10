@@ -10,7 +10,7 @@ def getData(servernums, starttime, cursor):
         INNER JOIN server_dimension USING (server_key) 
         WHERE server_hostname IN ('{}') 
         AND ping_time >= %s 
-        AND ping_type = 0 ORDER BY ping_time asc""".format(server_list)
+        AND ping_type = 2 ORDER BY ping_time asc""".format(server_list)
     cursor.execute(query, (starttime,))
     results = cursor.fetchall()
 
@@ -94,7 +94,8 @@ def getAveragePing(servernums, since, cursor,first_time,location,location_data):
             'ping_latency_ns': 0,
             'ping_time': time_block_begin,
             'total_weight': 0,
-            'server_hostname': server
+            'server_hostname': server,
+            'world_number': 0 if not server_data else server_data[0]['world_number']
         }
         
         last_server="none"
@@ -123,7 +124,8 @@ def getAveragePing(servernums, since, cursor,first_time,location,location_data):
                         'ping_latency_ns': 0,
                         'ping_time': time_block_begin,
                         'total_weight': 0,
-                        'server_hostname': server
+                        'server_hostname': server,
+                        'world_number': row['world_number'],
                     }
                     last_server = server
 
@@ -142,7 +144,7 @@ def getAveragePing(servernums, since, cursor,first_time,location,location_data):
             weightedAverage = totalWeighted / total_weight
         else:
             average = float("inf")
-            weightedAverage = float('int')
+            weightedAverage = float('inf')
 
         averages.append(average)
         weightedAverages.append(weightedAverage)
@@ -158,7 +160,10 @@ def getAveragePing(servernums, since, cursor,first_time,location,location_data):
                 weighted_sq_deviation = incremental_weight * (value - weightedAverage) ** 2
                 total_variance += weighted_sq_deviation
 
-        variances.append(total_variance / total_weight)
+        if count > 0:
+            variances.append(total_variance / total_weight)
+        else:
+            variances.append(float("inf"))
 
     
     print("display data: ", display_data)

@@ -21,11 +21,11 @@ class Grapher(tk.Toplevel):
         #   o  Creates a checkbox selector
         #   o  Creates a plot of the pings vs time
         #   o  Optionally creates a horizontal line representing the input average
-        def makePlot(self, server, ave, times, pings, bVisible, bPlotHLine=True):
+        def makePlot(self, server, world_number, ave, times, pings, bVisible, bPlotHLine=True):
             
             #
             # Create a checkbutton
-            stext = server+(" (%.2f)"%ave) # append the average to the displayed name
+            stext = f"w{world_number} " + server+(" (%.2f)"%ave) # append the average to the displayed name
             buttonFont = tk.font.Font(family='Helvetica', size=12, weight='bold')  # make the font larger and bold instead of default
             self.var = tk.IntVar() # variable to track the selected state
             self.check= tk.Checkbutton(self.parent.lfr, text=stext, variable=self.var, command=self.parent.checkbutton_changed, font=buttonFont, width=50, anchor="w")
@@ -142,11 +142,11 @@ class Grapher(tk.Toplevel):
         self.ax.set_ylim([self.pingRangeVars[0].get(), self.pingRangeVars[1].get()])
         plt.draw()
 
-    def addData(self, server, ave, times, pings):
+    def addData(self, server, world_number, ave, times, pings):
         
         if not server in self.servers:
             self.servers[server] = Grapher.server_data(self)
-            self.servers[server].makePlot(server, ave, times, pings, self.bFirstItem)
+            self.servers[server].makePlot(server, world_number, ave, times, pings, self.bFirstItem)
         
         if self.bFirstItem:
             self.canvas = FigureCanvasTkAgg(self.fig, master=self)
@@ -214,6 +214,6 @@ def waitGrapher(g):
 if __name__ == '__main__':
     g = getGrapher()
     # just some test data
-    g.addData("server_name", 21, [1, 2, 3, 4, 5], [10, 20, 13, 25, 20])
-    g.addData("server_name2", 22, [1, 2, 3, 3.5,4.5,5], [20, 30, 33, 25, 30, 17])
+    g.addData("server_name", -1, 21, [1, 2, 3, 4, 5], [10, 20, 13, 25, 20])
+    g.addData("server_name2", -2, 22, [1, 2, 3, 3.5,4.5,5], [20, 30, 33, 25, 30, 17])
     waitGrapher(g)

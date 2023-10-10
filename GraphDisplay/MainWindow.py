@@ -198,6 +198,7 @@ class ChildWindow:
         for server in plot_data:  # add the data to the graph
             self.g.addData(
                 server,
+                plot_data[server]["world_number"],
                 plot_data[server]["average"],
                 plot_data[server]["timestamps"],
                 plot_data[server]["goodness"],
